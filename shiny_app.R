@@ -52,7 +52,12 @@ ui <- fluidPage(
      downloadButton(outputId = "download_data", label = "Download"),
     ),
     mainPanel(
-      plotOutput(outputId = "plot1")
+      em("Climatology (mean 1961-2010)"),
+      plotOutput(outputId = "plot1"),
+      em("Spatially averaged time-series"),
+      plotOutput(outputId = "plot2"),
+      br(),
+      br()
     )
   )
 )
@@ -64,7 +69,8 @@ server <- function(input, output) {
     subset(mask,
            region %in% input$region)})
 
-  output$plot1 <- renderPlot({
+ 
+  filtered_data <- reactive({
     
     mask_to_use <- st_as_sf(filtered_mask(), coords = c("Lon", "Lat"))
     
@@ -83,6 +89,8 @@ server <- function(input, output) {
     crs(gridded_ts) = crs(mask_to_use)
     temp <- crop(gridded_ts, extent(mask_to_use))
     gridded_ts <- mask(temp, mask_to_use)
+    return(gridded_ts)
+  })
     
     # gridded_ts_df <- as.data.frame(gridded_ts, xy = TRUE)
     # names(gridded_ts_df)<-c("lon","lat","var")
@@ -91,62 +99,72 @@ server <- function(input, output) {
     # group_by(lat, lon) %>% 
     # summarise(mean = mean(var, na.rm = F))
    
-    
-    
-    twoplots <- function(dat) {
-      
+    output$plot1 <- renderPlot({
       timevals<-720:1319
-      par(mfrow = c(2,1), mai=c(rep(0.6,4)))               # This sets the new parameters: 2 columns (plots)
-      
-      # Plotting the first
-      with(dat,
-           plot(mean(dat))
-      )
-      
-      # Plotting the second
-      with(dat,
-           plot(timevals,cellStats(dat*(area(dat)), 'mean'),typ="l",ylab=input$variable)
-      )
-      
-      
-    }  
+      plot(mean(filtered_data()))
     
-   
-  twoplots(dat=gridded_ts)
-   # calculate spatially weighthed average of variables selected
-   # ts<-cellStats(gridded_ts*(area(gridded_ts)), 'mean') 
-   # timevals<-720:1319
-   # plot(timevals,ts,typ="l")
-    
-     # ggplotly({
-     #  plot<-ggplot() +
-     #     geom_raster(data = mean , aes(x = lon, y = lat, fill = var)) +
-     #     scale_fill_viridis_c() +
-     #     coord_quickmap()
-     #  plot
-     #  })
+  #     twoplots <- function(dat) {
+  #     
+  #     timevals<-720:1319
+  #     par(mfrow = c(2,1), mai=c(rep(0.6,4)))               # This sets the new parameters: 2 columns (plots)
+  #     
+  #     # Plotting the first
+  # 
+  #     plot(mean(dat))
+  #     
+  #     # df <- as.data.frame(dat, xy = TRUE)
+  #     # names("lon","lat","var")
+  #     # ggplotly({
+  #     #   p<-ggplot() +
+  #     #     geom_raster(data = df , aes(x = lon, y = lat, fill = var)) +
+  #     #     scale_fill_viridis_c() +
+  #     #     coord_quickmap()
+  #     #   p
+  #     # })
+  # 
+  #     # Plotting the second
+  #  
+  #     plot(timevals,cellStats(dat,'mean'),typ="l",ylab=input$variable)
+  #     
+  #   }  
+  #   
+  #  
+  # twoplots(dat=filtered_data())
+  #  # calculate spatially weighthed average of variables selected
+  #  # ts<-cellStats(gridded_ts*(area(gridded_ts)), 'mean') 
+  #  # timevals<-720:1319
+  #  # plot(timevals,ts,typ="l")
+  #   
+  #    # ggplotly({
+  #    #  plot<-ggplot() +
+  #    #     geom_raster(data = filtered_data() , aes(x = lon, y = lat, fill = var)) +
+  #    #     scale_fill_viridis_c() +
+  #    #     coord_quickmap()
+  #    #  plot
+  #    #  })
     
     
   })
   
-  
-  # output$plot2 <- renderPlot({
-  # 
-  # 
-  #   
-  # })
+   output$plot2 <- renderPlot({
+     ## calculate spatially weighthed average of variables selected
+     ts<-cellStats(filtered_data(), 'mean') 
+     timevals<-720:1319
+     plot(timevals,ts,typ="l",ylab=input$variable)
+
+   })
   
   # output$table <- DT::renderDataTable({
   #   gridded_ts_df <- as.data.frame(gridded_ts, xy = TRUE)
   #   gridded_ts_df
   # })
-  # output$download_data <- downloadHandler(
-  #   filename = "download_data.csv",
-  #   content = function(file) {
-  #     data <- filtered_data()
-  #     write.csv(data, file, row.names = FALSE)
-  #   }
-  # )
+   output$download_data <- downloadHandler(
+     filename = "download_data.csv",
+     content = function(file) {
+       data<-as.data.frame(filtered_data(), xy = TRUE)
+       write.csv(data, file, row.names = FALSE)
+     }
+   )
   
 }
 
