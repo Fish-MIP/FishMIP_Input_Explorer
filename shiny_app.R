@@ -13,9 +13,9 @@ library(DT)
 library(tidyverse)
 
 
-library(reticulate)
-library(metR)
-library(lubridate)
+# library(reticulate)
+# library(metR)
+# library(lubridate)
 library(raster)
 library(sf)
 library(terra)
@@ -34,9 +34,11 @@ filesuffix= "global_monthly_1961_2010.nc"
 
 
 ui <- fluidPage(
-  sidebarLayout(
+    theme = bslib::bs_theme(bootswatch = "yeti"),
+    titlePanel(title = span(img(src = "fishmiplogo.jpg", height = 35), "")),
+    sidebarLayout(
     sidebarPanel(
-      h2("FishMIP Regional Model Climate Forcing Explorer"),
+      h2("Regional Climate Forcing Explorer"),
       selectInput(inputId = "region", label = "Regional Model:",
                   choices = regions,
                   selected = "Prydz.Bay"),
@@ -53,9 +55,9 @@ ui <- fluidPage(
     ),
     mainPanel(
       em("Climatology (mean 1961-2010)"),
-      plotOutput(outputId = "plot1"),
+      plotlyOutput(outputId = "plot1",width="100%"),
       em("Spatially averaged time-series"),
-      plotOutput(outputId = "plot2"),
+      plotOutput(outputId = "plot2",width="100%"),
       br(),
       br()
     )
@@ -64,15 +66,25 @@ ui <- fluidPage(
 
 
 server <- function(input, output) {
+ 
+
+
   
   filtered_mask <- reactive({
-    subset(mask,
+
+    if (input$res =="15arcmin"){
+      mask <- read.csv(file="Masks_netcdf_csv/fishMIP_regional_025deg_ISIMIP3a.csv")
+    }
+    
+  subset(mask,
            region %in% input$region)})
 
- 
+
   filtered_data <- reactive({
     
     mask_to_use <- st_as_sf(filtered_mask(), coords = c("Lon", "Lat"))
+    #mask<-subset(mask,"Prydz.Bay" %in% mask$region)
+    #mask_to_use <- st_as_sf(mask, coords = c("Lon", "Lat"))
     
     file_to_get<-paste(thredds_dir,
                        modelscen,
@@ -83,7 +95,6 @@ server <- function(input, output) {
     #nc<-terra::rast("Masks_netcdf_csv/gfdl-mom6-cobalt2_obsclim_intppdiat_60arcmin_global_monthly_1961_2010.nc")
     # nc<-ncdf4::nc_open(file="Masks_netcdf_csv/gfdl-mom6-cobalt2_obsclim_intppdiat_60arcmin_global_monthly_1961_2010.nc",return_on_error=TRUE)
     # file_to_get<-"Masks_netcdf_csv/gfdl-mom6-cobalt2_obsclim_intppdiat_60arcmin_global_monthly_1961_2010.nc"
-    #file_to_get<-"http://portal.sf.utas.edu.au/thredds/dodsC/gem/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/global/monthly/historical/GFDL-MOM6-COBALT2/gfdl-mom6-cobalt2_obsclim_zmicro-vint_15arcmin_global_monthly_1961_2010.nc"
     gridded_ts <- brick(file.path(file_to_get))
     # # cut selected region out
     crs(gridded_ts) = crs(mask_to_use)
@@ -99,69 +110,48 @@ server <- function(input, output) {
     # group_by(lat, lon) %>% 
     # summarise(mean = mean(var, na.rm = F))
    
-    output$plot1 <- renderPlot({
-      timevals<-720:1319
-      plot(mean(filtered_data()))
-    
-  #     twoplots <- function(dat) {
-  #     
-  #     timevals<-720:1319
-  #     par(mfrow = c(2,1), mai=c(rep(0.6,4)))               # This sets the new parameters: 2 columns (plots)
-  #     
-  #     # Plotting the first
-  # 
-  #     plot(mean(dat))
-  #     
-  #     # df <- as.data.frame(dat, xy = TRUE)
-  #     # names("lon","lat","var")
-  #     # ggplotly({
-  #     #   p<-ggplot() +
-  #     #     geom_raster(data = df , aes(x = lon, y = lat, fill = var)) +
-  #     #     scale_fill_viridis_c() +
-  #     #     coord_quickmap()
-  #     #   p
-  #     # })
-  # 
-  #     # Plotting the second
-  #  
-  #     plot(timevals,cellStats(dat,'mean'),typ="l",ylab=input$variable)
-  #     
-  #   }  
-  #   
-  #  
-  # twoplots(dat=filtered_data())
-  #  # calculate spatially weighthed average of variables selected
-  #  # ts<-cellStats(gridded_ts*(area(gridded_ts)), 'mean') 
-  #  # timevals<-720:1319
-  #  # plot(timevals,ts,typ="l")
-  #   
-  #    # ggplotly({
-  #    #  plot<-ggplot() +
-  #    #     geom_raster(data = filtered_data() , aes(x = lon, y = lat, fill = var)) +
-  #    #     scale_fill_viridis_c() +
-  #    #     coord_quickmap()
-  #    #  plot
-  #    #  })
-    
-    
+    output$plot1 <- renderPlotly({
+      #plot(mean(filtered_data()))
+       clim<-mean(filtered_data())
+      ##clim<-mean(gridded_ts)
+       clim_df<-as.data.frame(clim, xy = TRUE)
+       names(clim_df)<-c("lon","lat","var")
+        ggplotly({
+          p<- ggplot() +
+          geom_raster(data = clim_df , aes(x = lon, y = lat, fill = var)) +
+            scale_fill_viridis_c(guide=guide_colorbar(title = paste(input$variable))) +
+            coord_quickmap() +
+            theme_classic()
+          p
+         })
+   
   })
   
    output$plot2 <- renderPlot({
      ## calculate spatially weighthed average of variables selected
-     ts<-cellStats(filtered_data(), 'mean') 
-     timevals<-720:1319
-     plot(timevals,ts,typ="l",ylab=input$variable)
+     ts<-cellStats(filtered_data(), 'mean')
+     #ts<-cellStats(gridded_ts, 'mean')
+     timevals<-seq(as.Date("1961-01-01"),as.Date("2010-12-01"), by="month")
+     df<-data.frame(time=as.Date(timevals),val=ts)
+     ggplot(df,aes(x=time,y=val)) +
+       geom_line() + 
+       geom_smooth(colour="steelblue")+
+       theme_classic() +
+       theme(axis.text = element_text(size=12),
+             axis.title = element_text(size=14))+
+       xlab("") +
+       ylab(paste(input$variable))
+     
+     #plot(timevals,ts,typ="l",ylab=input$variable)
 
    })
   
-  # output$table <- DT::renderDataTable({
-  #   gridded_ts_df <- as.data.frame(gridded_ts, xy = TRUE)
-  #   gridded_ts_df
-  # })
    output$download_data <- downloadHandler(
      filename = "download_data.csv",
      content = function(file) {
        data<-as.data.frame(filtered_data(), xy = TRUE)
+       timevals<-seq(as.Date("1961-01-01"),as.Date("2010-12-01"), by="month")
+       colnames(data)<-c("lon","lat",as.character(timevals))
        write.csv(data, file, row.names = FALSE)
      }
    )
