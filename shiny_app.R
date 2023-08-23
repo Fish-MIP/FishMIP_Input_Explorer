@@ -52,6 +52,18 @@ ui <- fluidPage(
                    selected = "60arcmin"),
       
      downloadButton(outputId = "download_data", label = "Download"),
+     br(),
+     
+     # Sidepanel instructions
+     
+     h4("Instructions:"),
+     p("1. Select a regional model from the dropdown."),
+     p("2. Choose a variable of interest."),
+     p("3. Select the resolution."),
+     p("4. Click the 'Download' button to download data."),
+     p("5. View climatology and time-series plots to the right."),
+     br(),
+     p("Higher resolution selections make take longer to load.")
     ),
     mainPanel(
       em("Climatology (mean 1961-2010)"),
