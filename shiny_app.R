@@ -1,19 +1,11 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-
+# This is a Shiny web application: Fish-MIP regional input explorer
+# You can run the application by clicking the 'Run App' button above.
 
 # Loading libraries -------------------------------------------------------
 library(shiny)
 library(shinyWidgets)
 library(plotly)
-library(stringr)
-library(dplyr)
-library(readr)
+library(tidyverse)
 library(sf)
 library(terra)
 library(tidyterra)
@@ -22,10 +14,12 @@ library(tidyterra)
 # Setting up  -------------------------------------------------------------
 #Load mask for regional ecosystem models
 fishmip_masks <- "/rd/gem/private/users/ldfierro/FishMIP_regions/Outputs/FishMIPMasks"
-area_folder <- "/rd/gem/private/users/ldfierro/FishMIP_regions/ESM_Sample_Data"
-#Loading csv masks
-mask_1deg <- read_csv(list.files(fishmip_masks, pattern = "1deg.csv", full.names = T))
-mask_025deg <- read_csv(list.files(fishmip_masks, pattern = "025deg.csv", full.names = T))
+#Loading masks
+mask_df <- read_csv(list.files(fishmip_masks, pattern = "025deg.csv", full.names = T))
+mask_ras <- rast(list.files(fishmip_masks, pattern = "025deg.nc", full.names = T))
+
+#Loading area
+area_ras <- rast("/rd/gem/private/users/ldfierro/FishMIP_regions/ESM_Sample_Data/area_025deg.nc")
 
 #Get list of variables with four dimensions (lon, lat, time and depth)
 four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |> 
@@ -37,14 +31,11 @@ depth_bins <- read_csv("Masks_netcdf_csv/depth_layers.csv") |>
 # Base folder containing Earth System Model (ESM) data
 base_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/global/monthly/historical/GFDL-MOM6-COBALT2/"
 # Getting list of all files within folder
-data_files <- list.files(base_dir)
+data_files <- list.files(base_dir, pattern = "15arcmin")
 #ESMname ="gfdl-mom6-cobalt2"
 modelscen <- c("obsclim")
 #Getting names of environmental variables available
 varNames <- str_extract(data_files, ".*obsclim_(.*)_[0-9]{2}arc.*", group = 1) |> 
-  unique()
-#ESM resolutions available
-resOptions <- str_extract(data_files, "[0-9]{2}arcmin") |>
   unique()
 
 
@@ -55,10 +46,11 @@ ui <- fluidPage(
     sidebarLayout(
     sidebarPanel(
       h2("Regional Climate Forcing Explorer"),
+      
       #Select region - Default to regions present in 1deg mask - Option to vary based on resolution
       pickerInput(inputId = "region", 
                   label = "Regional Model Name:",
-                  choices = unique(mask_1deg$region),
+                  choices = unique(mask_df$region),
                   selected = "Prydz Bay"),
       
       #to select the variable
@@ -66,12 +58,6 @@ ui <- fluidPage(
                   label = "Variable Name:", 
                   choices = varNames, 
                   selected ="tos"),
-      
-      # select the resolution
-      selectInput(inputId = "res", 
-                  label = "Earth System Model Resolution:",
-                  choices = resOptions,
-                  selected = "60arcmin"),
       
       # select depth - Option to vary based on variable selected
       pickerInput(inputId = "depth", 
@@ -86,17 +72,15 @@ ui <- fluidPage(
      h4("Instructions:"),
      p("1. Select a regional model from the dropdown list."),
      p("2. Choose an environmental variable of interest."),
-     p("3. Select the resolution of the Earth System Model."),
-     p("Note: Selecting a higher resolution may take longer to load. Due to the grid size, some regions may not be available at lower resolutions."),
-     p("4. View climatological mean as a map and as a time-series plot to the right."),
-     p("5. Optional: Click the 'Download' button to download data."),
+     p("3. View climatological mean as a map and as a time-series plot to the right."),
+     p("4. Optional: Click the 'Download' button to download data."),
      br(),
     ),
     mainPanel(
       em("Climatological mean (1961-2010)"),
       plotlyOutput(outputId = "plot1", width = "100%"),
       em("Spatially averaged time-series (1961-2010)"),
-      # plotOutput(outputId = "plot2", width = "100%"),
+      plotOutput(outputId = "plot2", width = "100%"),
       br(),
       br()
     )
@@ -121,28 +105,8 @@ server <- function(input, output, session) {
       }
     })
   
-  # Choose correct mask based on resolution selected
-  observeEvent(ignoreInit = T, input$res, {
-    if(input$res == "60arcmin"){
-      updatePickerInput(session = session, 
-                        inputId = "region",
-                        choices = unique(mask_1deg$region))
-      }else{
-        updatePickerInput(
-          session,
-          inputId = "region",
-          choices = unique(mask_025deg$region))
-        }})
-  
-  #Choose correct raster mask for resolution
+  #Selecting region within masks
   filtered_mask <- reactive({
-    if(input$res == "15arcmin"){
-      mask_ras <- rast(list.files(fishmip_masks, pattern = "025deg.nc", full.names = T))
-      mask_df <- mask_025deg
-    }else if(input$res == "60arcmin"){
-      mask_ras <- rast(list.files(fishmip_masks, pattern = "1deg.nc", full.names = T))
-      mask_df <- mask_1deg
-    }
     #Selecting correct region in data frame
     mask_reg_df <- mask_df |> 
       filter(region == input$region)
@@ -151,24 +115,37 @@ server <- function(input, output, session) {
       distinct(id) |> 
       pull()
     #Selecting correct region in raster
-    mask_reg_ras <- mask_ras[[id_reg]]
+    mask_reg_ras <- mask_ras[[id_reg]] |> 
+      drop_na()
     #Turning to binary raster
     mask_reg_ras[mask_reg_ras == id_reg] <- 1
     
+    #Apply mask to area raster
+    area_reg_df <- crop(area_ras, mask_reg_ras, mask = T) |> 
+      #Turning to data frame
+      as.data.frame(xy = T) |> 
+      #Renaming coordinates before joining
+      rename(lon = x, lat = y) |> 
+      #Joining with data frame mask
+      right_join(mask_reg_df, by = c("lon", "lat"))
+    
     #Return both mask in list
-    mask_reg <- list(df = mask_reg_df,
-                     ras = mask_reg_ras)
+    mask_reg <- list(ras = mask_reg_ras,
+                     area_df = area_reg_df)
     return(mask_reg)
   })
+  
+  data_path <- reactive({
+    # Getting file path for raster data
+    var_res <- paste(modelscen, input$variable, sep = "_")
+    file_to_get <- file.path(base_dir, data_files[str_detect(data_files, var_res)])
+    return(file_to_get)})
 
   filtered_data <- reactive({
     # Getting region from mask
     mask_to_use <- filtered_mask()
-    # Getting file path for raster data
-    var_res <- paste(modelscen, input$variable, input$res, sep = "_")
-    file_to_get <- file.path(base_dir, data_files[str_detect(data_files, var_res)])
     # Loading raster
-    gridded_ts <- rast(file_to_get)
+    gridded_ts <- rast(data_path())
     # Getting raster units for label
     var_unit <- unique(units(gridded_ts))
     # If CRS is not the same in raster and mask, then transform mask
@@ -176,17 +153,19 @@ server <- function(input, output, session) {
       mask_to_use$ras <- mask_to_use$ras |>
         st_transform(crs = crs(gridded_ts))
     }
-    # If depth is available select depth_bin
-    # if(input$depth != "None"){
-    #   lyrs <- names(gridded_ts)
-    #   lyrs <- lyrs[str_detect(lyrs, paste0("=", input$depth, "_"))]
-    #   gridded_ts <- gridded_ts[[lyrs]]
-    # }
-  #   
+    
     # Crop raster using mask
-    gridded_ts_reg <- gridded_ts*mask_to_use$ras
-    gridded_ts_reg  <- gridded_ts_reg |> 
-      drop_na(names(gridded_ts_reg)[1])
+    gridded_ts_reg <- crop(gridded_ts, mask_to_use$ras, mask = T)
+    
+    # If depth is available select depth_bin
+    if(input$depth != "None"){
+      lyrs <- names(gridded_ts_reg)
+      lyrs <- lyrs[str_detect(lyrs, paste0("=", input$depth, "_"))]
+      gridded_ts_reg <- gridded_ts_reg[[lyrs]]
+    }
+    
+    names(gridded_ts_reg) <- seq(as.Date("1961-01-01"), as.Date("2010-12-01"), 
+                                 by = "month")
     
     #Return list
     gridded_data <- list(ras = gridded_ts_reg, 
@@ -206,42 +185,54 @@ server <- function(input, output, session) {
                                                     frame.colour = "blue", title.vjust = 0.75),
                              na.value = NA) +
         theme_classic() +
-        theme(legend.position = "bottom", legend.key.width = unit(2, "cm")) }) #|> 
-      # layout(legend = list(
-      #   orientation = "h",
-      #   xanchor = "center",S
-      #   yanchor = "bottom",
-      #   x = 0.5))
+        theme(legend.position = "bottom", legend.key.width = unit(2, "cm")) })
   })
 
-   # output$plot2 <- renderPlot({
-     # calculate spatially weighthed average of variables selected
-   #   ts <- global(filtered_data(), 'mean')
-   #   #ts<-cellStats(gridded_ts, 'mean')
-   #   timevals<-seq(as.Date("1961-01-01"),as.Date("2010-12-01"), by="month")
-   #   df<-data.frame(time=as.Date(timevals),val=ts)
-   #   ggplot(df,aes(x=time,y=val)) +
-   #     geom_line() +
-   #     geom_smooth(colour="steelblue")+
-   #     theme_classic() +
-   #     theme(axis.text = element_text(size=12),
-   #           axis.title = element_text(size=14))+
-   #     xlab("") +
-   #     ylab(paste(input$variable))
-   # 
-   #   #plot(timevals,ts,typ="l",ylab=input$variable)
-   # 
-   # })
-
-   # output$download_data <- downloadHandler(
-   #   filename = "download_data.csv",
-   #   content = function(file) {
-   #     data<-as.data.frame(filtered_data(), xy = TRUE)
-   #     timevals<-seq(as.Date("1961-01-01"),as.Date("2010-12-01"), by="month")
-   #     colnames(data)<-c("lon","lat",as.character(timevals))
-   #     write.csv(data, file, row.names = FALSE)
-   #   }
-   # )
+   output$plot2 <- renderPlot({
+     # calculate spatially weighted average of variables selected
+     ts <- filtered_data()$ras |> 
+       as.data.frame(xy = T) |> 
+       #Renaming coordinates before joining
+       rename(lon = x, lat = y) |> 
+       #Joining with data frame mask (dropping ID and region because they are not needed)
+       right_join(filtered_mask()$area_df|> select(!c(id, region)), 
+                  by = c("lon", "lat")) |> 
+       #Calculating weighted means
+       pivot_longer(cols = -c(lon, lat, area_m), names_to = "date", 
+                    values_to = "value") |>
+       group_by(date) %>% 
+       summarise(weighted_mean = weighted.mean(value, area_m, na.rm = TRUE)) |> 
+       #Formatting dates correctly
+       mutate(date = ymd(date))
+     #Create label for y axis
+     cb_lab <- paste0("Weighted mean ", input$variable, " (", filtered_data()$unit, ")")
+     #Plot weighted means
+     ggplot(ts, aes(x = date, y = weighted_mean)) +
+       geom_line() +
+       geom_smooth(colour = "steelblue")+
+       theme_classic() +
+       scale_x_date(date_labels = "%b-%Y", date_breaks = "18 months")+
+       theme(axis.text = element_text(size = 12),
+             axis.text.x = element_text(angle = 90, vjust = 0.5),
+             axis.title.y = element_text(size = 12),
+             axis.title.x = element_blank())+
+       ylab(cb_lab)
+   })
+   
+   output$download_data <- downloadHandler(
+     #Creating name of download file based on original file name
+     filename <- str_split_i(data_path(), "//", i = 2) |> 
+       #Replace "nc" by "region_name".csv
+       str_replace(".nc", paste0("_", input$region, ".csv")),
+     content = function(file){
+       data <- filtered_data()$ras |> 
+         #Turning to data frame
+         as.data.frame(xy = TRUE) |> 
+         #Renaming coordinates before download
+         rename(lon = x, lat = y)
+       write_csv(data, file)
+     }
+   )
   
 }
 
