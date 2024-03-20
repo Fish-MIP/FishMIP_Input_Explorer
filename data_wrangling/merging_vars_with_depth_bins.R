@@ -77,7 +77,7 @@ for(m in models){
     write_csv(df, f_out)
     
     #Remove old files
-    
+    file.remove(var_path)
   }
 }
 
