@@ -9,13 +9,7 @@ library(terra)
 # Setting up  -------------------------------------------------------------
 #Load mask for regional ecosystem models
 fishmip_masks <- "/rd/gem/private/users/ldfierro/FishMIP_regions/Outputs/FishMIPMasks"
-#Loading masks
-mask_df <- read_csv(list.files(fishmip_masks,
-                               pattern = "FishMIP_regional_mask_025deg.csv",
-                               full.names = T))
-# mask_ras <- rast(list.files(fishmip_masks, 
-#                             pattern = "FishMIP_regional_mask_025deg.nc", 
-#                             full.names = T))
+
 #Keys to interpret raster mask
 keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
                             full.names = T))
@@ -35,9 +29,8 @@ area_ras <- rast("/rd/gem/private/users/ldfierro/FishMIP_regions/ESM_Sample_Data
 # Base folder containing Earth System Model (ESM) data
 base_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2"
 # Getting list of all files within folder
-data_files <- list.files(base_dir, pattern = "15arcmin")
-#ESMname ="gfdl-mom6-cobalt2"
-# modelscen <- c("obsclim")
+data_files <- list.files(base_dir, pattern = "15arcmin") |> 
+  str_subset("phydiat_depth", negate = T)
 #Getting names of environmental variables available
 varNames <- str_extract(data_files, ".*obsclim_(.*)_[0-9]{2}arc.*", group = 1) |> 
   unique()
@@ -67,7 +60,7 @@ ui <- fluidPage(
       #Option to vary based on resolution
       pickerInput(inputId = "region", 
                   label = NULL,
-                  choices = unique(mask_df$region),
+                  choices = keys$region,
                   selected = "Prydz Bay"),
       p("2. Choose an environmental variable"),
       #to select the variable
@@ -76,8 +69,8 @@ ui <- fluidPage(
                   choices = varNames, 
                   selected = "tos"),
       br(),
-     p("3. Inspect the climatological mean map (top right) and area-weighted\
-       timeseries plot (bottom right)."),
+     p("3. Inspect the climatological mean map and area-weighted\
+       timeseries plot on the right."),
      br(),
      p("Optional: Get the data used to create these plots by clicking the\
        'Download' button below.", br(), 
@@ -99,18 +92,28 @@ ui <- fluidPage(
 
 # Define actions ----------------------------------------------------------
 server <- function(input, output, session) {
-  #Region of choice
+  #Selecting correct file based on inputs from region and env variable selected
   region_fishmip <- reactive({
+    #Get region selected
     name_reg <- input$region |> 
+      #Change to all lowercase
       str_to_lower() |> 
+      #Replaces spaces " " with dashes "-" to identify correct files
       str_replace_all(" ", "-")
-    reg_files <- str_subset(data_files, name_reg)
+    #Get env variable selected
+    name_var <- input$variable
+    #Merge region and variable prior to identifying correct file
+    sub <- str_c(name_var, "_15arcmin_", name_reg)
+    #Identifying correct file
+    reg_files <- str_subset(data_files, sub)
   })
   
-  #Environmental variable of choice
+  #Loading dataset
   var_fishmip <- reactive({
-    env_file <- str_subset(region_fishmip(), input$variable)
-    df <- read_csv(file.path(base_dir, env_file))
+    #Get full file path to relevant file
+    env_file <- file.path(base_dir, region_fishmip())
+    #Load file
+    df <- read_csv(env_file)
     #Getting units from dataset
     unit <- df |> 
       select(units) |> 
@@ -127,20 +130,26 @@ server <- function(input, output, session) {
     cb_lab <- paste0(input$variable, " (", unit, ")")
     #Selecting relevant data frame columns
     df <- df |> 
-      select(c(lat, lon, matches("[0-9]{4}")))
-    return(list(file_name = env_file,
-                data = df,
-                units = units,
-                fig_label = cb_lab,
-                std_name = std_name))
+      #Metadata not included in data frame used for plots
+      select(c(lat, lon, matches("[0-9]{4}"))) |> 
+      #Reorganise data
+      pivot_longer(!c(lat, lon), names_to = "time", values_to = "vals") |> 
+      #Remove rows with NA values
+      drop_na() |> 
+      #Change time column to date format
+      mutate(time = my(time)) |> 
+      #Arrange dataset by time column
+      arrange(time)
+    df$standard_name <- std_name
+    df$units <- unit
+    #Return data frame
+    return(list(data = df,
+                fig_label = cb_lab))
   })
   
   # Creating first plot
   output$plot1 <- renderPlot({
     clim <- var_fishmip()$data |> 
-      select(c(lat, lon, matches("[0-9]{4}"))) |> 
-      pivot_longer(!c(lat, lon), names_to = "time", values_to = "vals") |> 
-      drop_na() |> 
       group_by(lon, lat) |>
       summarise(vals = mean(vals))
     
@@ -155,7 +164,8 @@ server <- function(input, output, session) {
                            na.value = NA) +
       guides(fill = guide_colorbar(title = var_fishmip()$fig_label, title.position = "top", 
                                    title.hjust = 0.5))+
-      labs(title = var_fishmip()$std_name, x = "Longitude", y = "Latitude")+
+      labs(title = var_fishmip()$data$standard_name, 
+           x = "Longitude", y = "Latitude")+
       theme_classic()+
       theme(legend.position = "bottom", legend.key.width = unit(2, "cm"),
             plot.title = element_text(hjust = 0.5))
@@ -165,11 +175,6 @@ server <- function(input, output, session) {
    output$plot2 <- renderPlot({
      # calculate spatially weighted average of variables selected
      ts <- var_fishmip()$data |> 
-       select(c(lat, lon, matches("[0-9]{4}"))) |> 
-       pivot_longer(matches("[0-9]{4}"), names_to = "time", 
-                    values_to = "vals") |> 
-       mutate(time = my(time)) |> 
-       arrange(time) |> 
        left_join(area_ras, by = join_by(lon, lat)) |> 
        group_by(time) |> 
        summarise(vals = weighted.mean(vals, area_m, na.rm = T))
@@ -180,7 +185,8 @@ server <- function(input, output, session) {
        geom_smooth(colour = "steelblue")+
        theme_classic() +
        scale_x_date(date_labels = "%b-%Y", date_breaks = "18 months")+
-       labs(title = var_fishmip()$std_name, y = var_fishmip()$fig_label)+
+       labs(title = var_fishmip()$data$standard_name, 
+            y = var_fishmip()$fig_label)+
        theme(axis.text = element_text(size = 12),
              axis.text.x = element_text(angle = 90, vjust = 0.5),
              axis.title.y = element_text(size = 12),
@@ -190,7 +196,7 @@ server <- function(input, output, session) {
 
    output$download_data <- downloadHandler(
      filename = function(){
-       var_fishmip()$file_name
+       region_fishmip()
      },
      #Creating name of download file based on original file name
      content = function(file){
