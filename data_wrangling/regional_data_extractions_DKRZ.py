@@ -67,6 +67,7 @@ for f in list_files:
     mask = mask_ras.region.sel(id = id_reg)
     #Check if depth dimension exists
     if 'depth_m' in da.dims:
+      df_all_depths = []
       #Apply mask to each depth bin
       for dbin, databin in da.groupby('depth_m'):
         dmask = databin.where(np.isfinite(mask)).drop_vars('id')
@@ -78,11 +79,13 @@ for f in list_files:
                                 values = dmask.name).reset_index()
         #Include original dataset attributes
         df_mask =  pd.concat([df_mask, da_attrs], axis = 1)
-        #File name out - Replacing "global" for region name
-        file_out = re.sub('_15arc', f'_depth-{str(dbin)}_15arc', base_file_out)
-        file_out = re.sub('global', reg_name, file_out)
-        #Saving data frame
-        df_mask.to_csv(os.path.join(base_out, file_out), index = False)
+        df_all_depths.append(df_mask)
+      #Concatenate all depth data frames
+      df_all_depths = pd.concat(df_all_depths, axis = 0)
+      #File name out - Replacing "global" for region name
+      file_out = re.sub('global', reg_name, file_out)
+      #Saving data frame
+      df_all_depths.to_csv(os.path.join(base_out, file_out), index = False)
     #If depth is not present, then apply mask directly
     else:
       #Apply mask to ESM data
