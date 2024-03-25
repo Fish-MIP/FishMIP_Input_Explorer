@@ -14,25 +14,22 @@ fishmip_masks <- "/rd/gem/private/users/ldfierro/FishMIP_regions/Outputs/FishMIP
 keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
                             full.names = T))
 
-#Loading area
-area_ras <- rast("/rd/gem/private/users/ldfierro/FishMIP_regions/ESM_Sample_Data/area_025deg.nc") |> 
-  as.data.frame(xy = T) |> 
-  rename(lon = x, lat = y)
-
 # #Get list of variables with four dimensions (lon, lat, time and depth)
 # four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |> 
 #   pull(vars)
 
 # Folders containing Earth System Model (ESM) data
-download_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2/smaller/"
-maps_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2/maps_data/"
-# ts_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2/ts_data/"
+base_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2"
+download_dir <- file.path(base_dir, "download_data")
+maps_dir <- file.path(base_dir, "maps_data")
+ts_dir <- file.path(base_dir, "ts_data")
 
 # Getting list of all files within folder
 var_files <- list.files(maps_dir, pattern = "15arcmin") #|> 
-  # str_subset("phydiat_depth|chl", negate = T)
+  # str_subset("chl", negate = T)
 #Getting names of environmental variables available
-varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*", group = 1) |> 
+varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*", 
+                        group = 1) |> 
   unique()
 
 
@@ -70,7 +67,7 @@ ui <- fluidPage(
                   selected = "tos"),
       br(),
      p("3. Inspect the climatological mean map and area-weighted\
-       timeseries plot on the right."),
+       time series plot on the right."),
      br(),
      p("Optional: Get the data used to create these plots by clicking the\
        'Download' button below.", br(), 
@@ -130,13 +127,13 @@ server <- function(input, output, session) {
     cb_lab <- paste0(input$variable, " (", unit, ")")
     
     #Get full file path to relevant file
-    # ts_file <- file.path(ts_dir, region_fishmip())
+    ts_file <- file.path(ts_dir, region_fishmip())
     #Load file
-    # df2 <- read_csv(ts_file)
+    df2 <- read_csv(ts_file)
     
     #Return data frame
     return(list(map_data = df,
-                # ts_data = df2,
+                ts_data = df2,
                 std_name = std_name,
                 fig_label = cb_lab))
   })
@@ -150,7 +147,8 @@ server <- function(input, output, session) {
                                                   frame.colour = "blue", 
                                                   title.vjust = 0.75),
                            na.value = NA) +
-      guides(fill = guide_colorbar(title = var_fishmip()$fig_label, title.position = "top", 
+      guides(fill = guide_colorbar(title = var_fishmip()$fig_label, 
+                                   title.position = "top", 
                                    title.hjust = 0.5))+
       labs(title = var_fishmip()$std_name, 
            x = "Longitude", y = "Latitude")+
@@ -160,21 +158,21 @@ server <- function(input, output, session) {
   })
 
    output$plot2 <- renderPlot({
-     # calculate spatially weighted average of variables selected
-     # var_fishmip()$ts_data |> 
-     #   #Plot weighted means
-     #   ggplot(aes(x = date, y = vals)) +
-     #     geom_line() +
-     #     geom_smooth(colour = "steelblue")+
-     #     theme_classic() +
-     #     scale_x_date(date_labels = "%b-%Y", date_breaks = "18 months")+
-     #     labs(title = var_fishmip()$std_name, 
-     #          y = var_fishmip()$fig_label)+
-     #     theme(axis.text = element_text(size = 12),
-     #           axis.text.x = element_text(angle = 90, vjust = 0.5),
-     #           axis.title.y = element_text(size = 12),
-     #           axis.title.x = element_blank(),
-     #           plot.title = element_text(hjust = 0.5))
+     #calculate spatially weighted average of variables selected
+     var_fishmip()$ts_data |>
+       #Plot weighted means
+       ggplot(aes(x = date, y = vals)) +
+         geom_line() +
+         geom_smooth(colour = "steelblue")+
+         theme_classic() +
+         scale_x_date(date_labels = "%b-%Y", date_breaks = "18 months")+
+         labs(title = var_fishmip()$std_name,
+              y = var_fishmip()$fig_label)+
+         theme(axis.text = element_text(size = 12),
+               axis.text.x = element_text(angle = 90, vjust = 0.5),
+               axis.title.y = element_text(size = 12),
+               axis.title.x = element_blank(),
+               plot.title = element_text(hjust = 0.5))
      })
 
    #Loading download dataset
@@ -194,7 +192,6 @@ server <- function(input, output, session) {
        write_csv(down_fishmip(), file)
      }
    )
-  
 }
 
 shinyApp(ui = ui, server = server)
