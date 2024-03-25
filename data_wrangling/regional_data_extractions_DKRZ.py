@@ -83,7 +83,7 @@ for f in list_files:
       #Concatenate all depth data frames
       df_all_depths = pd.concat(df_all_depths, axis = 0)
       #File name out - Replacing "global" for region name
-      file_out = re.sub('global', reg_name, file_out)
+      file_out = re.sub('global', reg_name, base_file_out)
       #Saving data frame
       df_all_depths.to_csv(os.path.join(base_out, file_out), index = False)
     #If depth is not present, then apply mask directly
@@ -102,5 +102,5 @@ for f in list_files:
       file_out = re.sub("global", reg_name, base_file_out)
       #Saving data frame
       df.to_csv(os.path.join(base_out, file_out), index = False)
-  
 
+ 
