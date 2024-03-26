@@ -78,7 +78,7 @@ ui <- fluidPage(
     mainPanel(
       em("Climatological mean (1961-2010)"),
       plotOutput(outputId = "plot1", width = "100%"),
-      em("Spatially averaged timeseries (1961-2010)"),
+      em("Spatially averaged time series"),
       plotOutput(outputId = "plot2", width = "100%"),
       br(),
       br()
