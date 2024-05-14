@@ -15,7 +15,8 @@ library(tidyverse)
 
 # Setting up --------------------------------------------------------------
 # Base folder containing Earth System Model (ESM) data
-base_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2"
+base_dir <- paste0("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/", 
+                   "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
 
 # Getting list of all files within folder
 data_files <- list.files(base_dir, pattern = "15arcmin", full.names = T) |> 
