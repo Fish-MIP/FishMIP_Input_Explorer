@@ -21,8 +21,7 @@ path_mask = os.path.join('/rd/gem/private/shared_resources/FishMIPMasks/',\
 
 #Loading FishMIP region mask
 mask_ras = xr.open_dataset(path_mask)
-mask_ras = mask_ras.rename({'latitude': 'lat', \
-                            'longitude': 'lon', \
+mask_ras = mask_ras.rename({'latitude': 'lat', 'longitude': 'lon', \
                             'time': 'id'})
 
 #FishMIP keys to interpret mask
@@ -69,9 +68,9 @@ for f in list_files:
     ind_wider = ['lat', 'lon']
   
   #Extract data for each region included in the regional mask
-  for i in regions.index[7:9]:
+  for i in regions.index:
     #Get name of region
-    reg_name = regions.loc[i, 'region'].lower().replace(" ", "-")
+    reg_name = regions.loc[i, 'region'].lower().replace(" ", "-").replace("'", "")
     #Get ID for region
     id_reg = regions.loc[i, 'id']
     #Load mask
@@ -115,3 +114,4 @@ for f in list_files:
       df.to_csv(os.path.join(base_out, file_out), index = False)
 
  
+
