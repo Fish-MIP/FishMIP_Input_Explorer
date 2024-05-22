@@ -1,14 +1,18 @@
 # Loading libraries -------------------------------------------------------
 library(shiny)
-library(shinyWidgets)
-library(tidyverse)
-# library(sf)
+# library(shinyWidgets)
+library(readr)
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(bslib)
+library(rnaturalearth)
 library(terra)
 # library(tidyterra)
 
 # Setting up  -------------------------------------------------------------
 #Load mask for regional ecosystem models
-fishmip_masks <- "/rd/gem/private/users/ldfierro/FishMIP_regions/Outputs/FishMIPMasks"
+fishmip_masks <- "/rd/gem/private/shared_resources/FishMIPMasks"
 
 #Keys to interpret raster mask
 keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
@@ -19,7 +23,8 @@ keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
 #   pull(vars)
 
 # Folders containing Earth System Model (ESM) data
-base_dir <- "/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean/obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2"
+base_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
+                      "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
 download_dir <- file.path(base_dir, "download_data")
 maps_dir <- file.path(base_dir, "maps_data")
 ts_dir <- file.path(base_dir, "ts_data")
@@ -32,10 +37,24 @@ varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*",
                         group = 1) |> 
   unique()
 
+world <- ne_countries(returnclass = "sf")
+
+scaler <- function(x, type, ratio = F){
+  if((x > 0 & type == "min") | (x < 0 & type == "min")){
+    x <- ifelse(ratio == T, x-.75, x-1.5)
+  }else if((x < 0 & type == "max") | (x > 0 & type == "max")){
+    x <- ifelse(ratio == T, x+.5, x+1.25)
+  }else if(x == 0 & type == "min"){
+    x <- ifelse(ratio == T, x-.25, x-.5)
+  }else{
+    x <- ifelse(ratio == T, x+.25, x+.5)
+  }
+  return(x)
+}
 
 # Definining user interface -----------------------------------------------
 ui <- fluidPage(
-    theme = bslib::bs_theme(bootswatch = "yeti"),
+    theme = bs_theme(bootswatch = "yeti"),
     titlePanel(title = span(img(src = "FishMIP_logo.jpg", height = 100,
                                 width = 300, style = "display: block;
                                                       margin-left: auto;
@@ -97,6 +116,8 @@ server <- function(input, output, session) {
       str_to_lower() |> 
       #Replaces spaces " " with dashes "-" to identify correct files
       str_replace_all(" ", "-")
+    name_reg <- ifelse(str_detect(name_reg, "hawai"), 
+                       "hawaiian-longline", name_reg)
     #Get env variable selected
     name_var <- input$variable
     #Merge region and variable prior to identifying correct file
@@ -110,7 +131,8 @@ server <- function(input, output, session) {
     #Get full file path to relevant file
     map_file <- file.path(maps_dir, region_fishmip())
     #Load file
-    df <- read_csv(map_file)
+    df <- read_csv(map_file) |> 
+      drop_na(vals)
     #Getting units from dataset
     unit <- df |> 
       distinct(units) |> 
@@ -140,21 +162,50 @@ server <- function(input, output, session) {
   
   # Creating first plot
   output$plot1 <- renderPlot({
+    minx <- min(var_fishmip()$map_data$lon)
+    maxx <- max(var_fishmip()$map_data$lon)
+    miny <- min(var_fishmip()$map_data$lat)
+    maxy <- max(var_fishmip()$map_data$lat)
+    #Calculate range
+    rangex <- abs(abs(maxx)-abs(minx))
+    rangey <- abs(abs(maxy)-abs(miny))
+    #Apply scaler function
+    if(rangex >= 1.15*rangey){
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+      xlims <- c(scaler(minx, "min", ratio = T),
+                 scaler(maxx, "max", ratio = T))
+    }else if(rangey >= 1.15*rangex){
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min", ratio = T),
+                 scaler(maxy, "max", ratio = T))
+    }else{
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+    }
+    
+    
     var_fishmip()$map_data |> 
       ggplot(aes(x = lon, y = lat, fill = vals)) +
       geom_raster()+
+      coord_cartesian()+
       scale_fill_viridis_c(guide = guide_colorbar(ticks.linewidth = 0.75,
                                                   frame.colour = "blue", 
                                                   title.vjust = 0.75),
                            na.value = NA) +
+      geom_sf(inherit.aes = F, data = world, lwd = 0.25,
+              color = "black", show.legend = F)+
       guides(fill = guide_colorbar(title = var_fishmip()$fig_label, 
                                    title.position = "top", 
                                    title.hjust = 0.5))+
-      labs(title = var_fishmip()$std_name, 
-           x = "Longitude", y = "Latitude")+
+      labs(title = var_fishmip()$std_name)+
       theme_classic()+
       theme(legend.position = "bottom", legend.key.width = unit(2, "cm"),
-            plot.title = element_text(hjust = 0.5))
+            plot.title = element_text(hjust = 0.5))+
+      coord_sf(xlims, ylims)
   })
 
    output$plot2 <- renderPlot({
