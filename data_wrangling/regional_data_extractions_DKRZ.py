@@ -15,28 +15,39 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-#FishMIP region mask
-mask_ras = xr.open_dataset('FishMIP_regional_mask_025deg.nc')
+#Location of FishMIP region mask
+path_mask = os.path.join('/rd/gem/private/shared_resources/FishMIPMasks/',\
+        'gfdl-mom6-cobalt2_areacello_15arcmin_fishMIP_regional_mask_fixed.nc')
+
+#Loading FishMIP region mask
+mask_ras = xr.open_dataset(path_mask)
 mask_ras = mask_ras.rename({'latitude': 'lat', \
                             'longitude': 'lon', \
                             'time': 'id'})
 
 #FishMIP keys to interpret mask
-regions = pd.read_csv('FishMIP_regions_keys.csv')
+path_reg = os.path.join('/rd/gem/private/shared_resources/FishMIPMasks/',\
+                        'FishMIP_regions_keys.csv')
+regions = pd.read_csv(path_reg)
+
+#Removing variables not needed
+del path_mask, path_reg
 
 #Base folder containing Earth System Model (ESM) data
-base_dir = '/work/bb0820/ISIMIP/ISIMIP3a/InputData/climate/ocean/obsclim/global/monthly/historical/GFDL-MOM6-COBALT2'
+base_dir = os.path.join('/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/', 
+                        'ocean/obsclim/global/monthly/historical/',
+                        'GFDL-MOM6-COBALT2')
 #List only files at 0.25 deg resolution
 list_files = glob(os.path.join(base_dir, "*15arcmin*"))
 
 #Folder for outputs
-base_out = 'regions'
+base_out = base_dir.replace('global', 'regional')
 os.makedirs(base_out, exist_ok = True)
 
 #Loop through all files
 for f in list_files:
   #Base file name out
-  base_file_out = re.sub(".nc$", ".csv", os.path.split(f)[-1])
+  base_file_out = os.path.basename(f).replace('.nc', '.csv')
   
   #Open data array
   da = xr.open_dataarray(f)
@@ -58,7 +69,7 @@ for f in list_files:
     ind_wider = ['lat', 'lon']
   
   #Extract data for each region included in the regional mask
-  for i in regions.index:
+  for i in regions.index[7:9]:
     #Get name of region
     reg_name = regions.loc[i, 'region'].lower().replace(" ", "-")
     #Get ID for region
