@@ -1,14 +1,14 @@
 # Loading libraries -------------------------------------------------------
 library(shiny)
-# library(shinyWidgets)
+library(shinyWidgets)
 library(readr)
 library(stringr)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
 library(bslib)
 library(rnaturalearth)
-library(terra)
-# library(tidyterra)
+library(sf)
 
 # Setting up  -------------------------------------------------------------
 #Load mask for regional ecosystem models
@@ -19,7 +19,7 @@ keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
                             full.names = T))
 
 # #Get list of variables with four dimensions (lon, lat, time and depth)
-# four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |> 
+# four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |>
 #   pull(vars)
 
 # Folders containing Earth System Model (ESM) data
@@ -30,14 +30,14 @@ maps_dir <- file.path(base_dir, "maps_data")
 ts_dir <- file.path(base_dir, "ts_data")
 
 # Getting list of all files within folder
-var_files <- list.files(maps_dir, pattern = "15arcmin") #|> 
+var_files <- list.files(maps_dir) #|> 
   # str_subset("chl", negate = T)
 #Getting names of environmental variables available
 varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*", 
                         group = 1) |> 
   unique()
 
-world <- ne_countries(returnclass = "sf")
+world <- ne_countries(returnclass = "sf", scale = "medium")
 
 scaler <- function(x, type, ratio = F){
   if((x > 0 & type == "min") | (x < 0 & type == "min")){
@@ -78,7 +78,7 @@ ui <- fluidPage(
                   label = NULL,
                   choices = keys$region,
                   selected = "Prydz Bay"),
-      p("2. Choose an environmental variable from GFDL-MOM6"),
+      p("2. Choose an environmental variable from GFDL-MOM6-COBALT2"),
       #to select the variable
       selectInput(inputId = "variable", 
                   label = NULL, 
@@ -90,14 +90,14 @@ ui <- fluidPage(
      br(),
      p("Optional: Get the data used to create these plots by clicking the\
        'Download' button below.", br(), 
-       "This may take a few minutes while we get the data ready for you."),
+       "This can take a couple of minutes."),
      #Download button
      downloadButton(outputId = "download_data", label = "Download"),
     ),
     mainPanel(
-      em("Climatological mean (1961-2010)"),
+      em("Map: climatological mean (1961-2010)"),
       plotOutput(outputId = "plot1", width = "100%"),
-      em("Spatially averaged time series"),
+      em("Time series: Area weighted mean over region of interest"),
       plotOutput(outputId = "plot2", width = "100%"),
       br(),
       br()
@@ -115,15 +115,15 @@ server <- function(input, output, session) {
       #Change to all lowercase
       str_to_lower() |> 
       #Replaces spaces " " with dashes "-" to identify correct files
-      str_replace_all(" ", "-")
-    name_reg <- ifelse(str_detect(name_reg, "hawai"), 
-                       "hawaiian-longline", name_reg)
+      str_replace_all(" ", "-") |> 
+      str_replace("'", "")
     #Get env variable selected
     name_var <- input$variable
     #Merge region and variable prior to identifying correct file
     sub <- str_c(name_var, "_15arcmin_", name_reg)
     #Identifying correct file
     file_path <- str_subset(var_files, sub)
+    return(file_path)
   })
   
   #Loading dataset
@@ -139,12 +139,18 @@ server <- function(input, output, session) {
       drop_na() |> 
       pull()
     #Getting standard name from dataset
-    std_name <- df |> 
-      distinct(standard_name) |> 
-      drop_na() |>
-      pull() |> 
-      str_replace_all("_", " ") |> 
-      str_to_sentence()
+    if("standard_name" %in% names(df)){
+      std_name <- df |> 
+        distinct(standard_name) 
+    }else{
+      std_name <- df |> 
+        distinct(long_name) 
+    }
+    std_name <- std_name |> 
+        drop_na() |>
+        pull() |> 
+        str_replace_all("_", " ") |> 
+        str_to_sentence()
     #Creating label for figures
     cb_lab <- paste0(input$variable, " (", unit, ")")
     
@@ -187,7 +193,7 @@ server <- function(input, output, session) {
                  scaler(maxy, "max"))
     }
     
-    
+    #Plotting map
     var_fishmip()$map_data |> 
       ggplot(aes(x = lon, y = lat, fill = vals)) +
       geom_raster()+
@@ -204,7 +210,10 @@ server <- function(input, output, session) {
       labs(title = var_fishmip()$std_name)+
       theme_classic()+
       theme(legend.position = "bottom", legend.key.width = unit(2, "cm"),
-            plot.title = element_text(hjust = 0.5))+
+            plot.title = element_text(hjust = 0.5), 
+            axis.text = element_text(size = 12), axis.title = element_blank(), 
+            legend.text = element_text(size = 12), 
+            legend.title = element_text(size = 12))+
       coord_sf(xlims, ylims)
   })
 
@@ -213,17 +222,24 @@ server <- function(input, output, session) {
      var_fishmip()$ts_data |>
        #Plot weighted means
        ggplot(aes(x = date, y = vals)) +
-         geom_line() +
-         geom_smooth(colour = "steelblue")+
-         theme_classic() +
-         scale_x_date(date_labels = "%b-%Y", date_breaks = "18 months")+
-         labs(title = var_fishmip()$std_name,
-              y = var_fishmip()$fig_label)+
-         theme(axis.text = element_text(size = 12),
-               axis.text.x = element_text(angle = 90, vjust = 0.5),
-               axis.title.y = element_text(size = 12),
-               axis.title.x = element_blank(),
-               plot.title = element_text(hjust = 0.5))
+       geom_line(aes(color = "area weighted mothly mean")) +
+       geom_smooth(aes(color = "temporal trend"))+
+       scale_color_manual(breaks = c("area weighted mothly mean", 
+                                     "temporal trend"), 
+                          values = c("#004488", "#bb5566"))+
+       theme_bw() +
+       scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months", 
+                    expand = expansion(0.02))+
+       guides(color = guide_legend(title = element_blank()))+
+       labs(title = var_fishmip()$std_name,
+            y = var_fishmip()$fig_label)+
+       theme(axis.text.y = element_text(size = 12),
+             axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, 
+                                        size = 12),
+             axis.title.y = element_text(size = 12), 
+             axis.title.x = element_blank(),
+             plot.title = element_text(hjust = 0.5),
+             legend.position = "bottom", legend.text = element_text(size = 12))
      })
 
    #Loading download dataset
