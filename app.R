@@ -18,7 +18,7 @@ fishmip_masks <- "/rd/gem/private/shared_resources/FishMIPMasks"
 keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
                             full.names = T))
 
-# #Get list of variables with four dimensions (lon, lat, time and depth)
+ #Get list of variables with four dimensions (lon, lat, time and depth)
 # four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |>
 #   pull(vars)
 
