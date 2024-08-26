@@ -10,21 +10,25 @@ library(bslib)
 library(rnaturalearth)
 library(sf)
 
-# Setting up  -------------------------------------------------------------
-#Load mask for regional ecosystem models
-fishmip_masks <- "/rd/gem/private/shared_resources/FishMIPMasks"
+# OHW directory  -------------------------------------------------------------
+base_dir <- "/scratch/nf33/la6889/fishmip" # directory for OHW datasets
 
-#Keys to interpret raster mask
+# Setting up  -------------------------------------------------------------
+# Load mask for regional ecosystem models
+# fishmip_masks <- "/rd/gem/private/shared_resources/FishMIPMasks"
+fishmip_masks <- "example_data/"
+
+# Keys to interpret raster mask
 keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
                             full.names = T))
 
- #Get list of variables with four dimensions (lon, lat, time and depth)
+# Get list of variables with four dimensions (lon, lat, time and depth)
 # four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |>
 #   pull(vars)
 
 # Folders containing Earth System Model (ESM) data
-base_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
-                      "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
+# base_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
+#                       "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
 download_dir <- file.path(base_dir, "download_data")
 maps_dir <- file.path(base_dir, "maps_data")
 ts_dir <- file.path(base_dir, "ts_data")
@@ -32,14 +36,14 @@ ts_dir <- file.path(base_dir, "ts_data")
 # Getting list of all files within folder
 var_files <- list.files(maps_dir) #|> 
   # str_subset("chl", negate = T)
-#Getting names of environmental variables available
+# Getting names of environmental variables available
 varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*", 
                         group = 1) |> 
   unique()
 
 world <- ne_countries(returnclass = "sf", scale = "medium")
 
-#Function to improve map ratios for plotting
+# Function to improve map ratios for plotting
 scaler <- function(x, type, ratio = F){
   if((x > 0 & type == "min") | (x < 0 & type == "min")){
     x <- ifelse(ratio == T, x-3, x-6)
