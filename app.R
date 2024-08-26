@@ -174,8 +174,8 @@ ui <- fluidPage(
                  use of computing facilities provided by Digital Research 
                  Services, IT Services at the University of Tasmania."),
                br(),
-               card(img(src = "IMAS_logo.png", height = 150, width = 300, 
-               style = "display: block; margin-left: auto; margin-right:auto")),
+               # card(img(src = "IMAS_logo.png", height = 150, width = 300, 
+               # style = "display: block; margin-left: auto; margin-right:auto")),
                br(),
                br()
              )
