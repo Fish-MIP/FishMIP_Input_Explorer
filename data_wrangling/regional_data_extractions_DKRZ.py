@@ -16,7 +16,7 @@ import numpy as np
 from datetime import datetime
 
 #Location of FishMIP region mask
-path_mask = os.path.join('/rd/gem/private/shared_resources/FishMIPMasks/',\
+path_mask = os.path.join('/rd/gem/private/shared_resources/FishMIPMasks/',
         'gfdl-mom6-cobalt2_areacello_15arcmin_fishMIP_regional_mask_fixed.nc')
 
 #Loading FishMIP region mask
