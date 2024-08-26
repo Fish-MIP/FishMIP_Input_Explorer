@@ -4,3 +4,5 @@
 .Ruserdata
 .nc
 .DS_Store
+
+example_data/WOA_data/*

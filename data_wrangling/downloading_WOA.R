@@ -38,13 +38,13 @@ sapply(X = c("02", "03"),
        FUN = get_thredds, 
        domain = "https://www.ncei.noaa.gov/",
        catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/temperature/netcdf/decav/0.25/catalog.xml"),
-       destdir = "example_data/")
+       destdir = "example_data/WOA_data/")
 
 sapply(X = c("02", "03"), 
        FUN = get_thredds, 
        domain = "https://www.ncei.noaa.gov/",
        catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/salinity/netcdf/decav/0.25/catalog.xml"),
-       destdir = "example_data/")
+       destdir = "example_data/WOA_data/")
 
 end <- Sys.time()
 print(paste0("Finished downloads at ", end, ". Total time taken: ", round(difftime(end, start, units='mins'), 2), " minutes."))
