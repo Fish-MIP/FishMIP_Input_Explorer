@@ -43,7 +43,7 @@ sapply(X = months,
        code = "t",
        FUN = get_thredds, 
        domain = domain,
-       catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/temperature/netcdf/decav/0.25/catalog.xml"),
+       catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/temperature/netcdf/decav81B0/0.25/catalog.xml"),
        destdir = "example_data/WOA_data/")
 
 print(paste0("Halfway there at ", Sys.time()))
@@ -52,7 +52,7 @@ sapply(X = months,
        code = "s",
        FUN = get_thredds, 
        domain = domain,
-       catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/salinity/netcdf/decav/0.25/catalog.xml"),
+       catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/salinity/netcdf/decav81B0/0.25/catalog.xml"),
        destdir = "example_data/WOA_data/")
 
 end <- Sys.time()
