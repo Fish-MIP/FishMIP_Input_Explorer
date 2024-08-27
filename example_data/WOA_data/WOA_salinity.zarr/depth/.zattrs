@@ -1,0 +1,10 @@
+{
+    "_ARRAY_DIMENSIONS": [
+        "depth"
+    ],
+    "axis": "Z",
+    "bounds": "depth_bnds",
+    "positive": "down",
+    "standard_name": "depth",
+    "units": "meters"
+}
