@@ -17,12 +17,12 @@ library(curl)
 library(tidyverse)
 
 # Function to download the correct file from the thredds server
-get_thredds <- function(domain, catalogue, destdir, month){
+get_thredds <- function(domain, catalogue, destdir, month, code){
   noaa_reg <- CatalogNode$new(catalogue, prefix = "thredds")
   base_http <- noaa_reg$list_services()$http[["base"]]
   
   file <- noaa_reg$list_datasets()
-  file <- file[str_extract(names(file), "t(\\d{2})", group = 1) == month]
+  file <- file[str_extract(names(file), paste0(code, "(\\d{2})"), group = 1) == month]
   name <- names(file)
   
   if (!file.exists(paste0(destdir, name))) {
@@ -40,12 +40,16 @@ domain <- "https://www.ncei.noaa.gov/"
 
 # Apply the function to all the desired files
 sapply(X = months, 
+       code = "t",
        FUN = get_thredds, 
        domain = domain,
        catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/temperature/netcdf/decav/0.25/catalog.xml"),
        destdir = "example_data/WOA_data/")
 
+print(paste0("Halfway there at ", Sys.time()))
+
 sapply(X = months, 
+       code = "s",
        FUN = get_thredds, 
        domain = domain,
        catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/salinity/netcdf/decav/0.25/catalog.xml"),
