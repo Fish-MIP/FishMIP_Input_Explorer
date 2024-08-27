@@ -20,27 +20,31 @@ library(tidyverse)
 get_thredds <- function(domain, catalogue, destdir, month){
   noaa_reg <- CatalogNode$new(catalogue, prefix = "thredds")
   base_http <- noaa_reg$list_services()$http[["base"]]
-
+  
   file <- noaa_reg$list_datasets()
   file <- file[str_extract(names(file), "t(\\d{2})", group = 1) == month]
   name <- names(file)
   
-  curl_download(paste0(domain, base_http, noaa_reg$get_datasets()[[names(file)]]$url), 
-                destfile = paste0(destdir, name))
+  if (!file.exists(paste0(destdir, name))) {
+    curl_download(paste0(domain, base_http, noaa_reg$get_datasets()[[names(file)]]$url), 
+                  destfile = paste0(destdir, name))
+  }
 }
 
 # If you source this script it might take a while
 start <- Sys.time()
 print(paste0("Started downloads at ", start))
 
+months <- c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
+
 # Apply the function to all the desired files
-sapply(X = c("02", "03"), 
+sapply(X = months, 
        FUN = get_thredds, 
        domain = "https://www.ncei.noaa.gov/",
        catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/temperature/netcdf/decav/0.25/catalog.xml"),
        destdir = "example_data/WOA_data/")
 
-sapply(X = c("02", "03"), 
+sapply(X = months, 
        FUN = get_thredds, 
        domain = "https://www.ncei.noaa.gov/",
        catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/salinity/netcdf/decav/0.25/catalog.xml"),
