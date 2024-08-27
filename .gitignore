@@ -5,4 +5,4 @@
 .nc
 .DS_Store
 
-example_data/WOA_data/*
+example_data/WOA_data/woa23*
