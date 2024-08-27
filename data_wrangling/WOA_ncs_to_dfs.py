@@ -11,14 +11,13 @@
 # Setting up
 import xarray as xr
 import pandas as pd
-# import numpy as np
 import datetime as dt
 import glob
 import dask
 import os
 import netCDF4 as nc
-from dask.distributed import Client
-client = Client(threads_per_worker=1)
+#from dask.distributed import Client
+#client = Client(threads_per_worker=1)
 
 def get_absolute_paths(filenames, directory):
     absolute_paths = []
@@ -27,18 +26,19 @@ def get_absolute_paths(filenames, directory):
         absolute_paths.append(absolute_path)
     return absolute_paths
 
+# Defines region bounding boxes
+df = pd.read_csv("FishMIP_Input_Explorer/example_data/FishMIP_regions_bbox.csv")
+
 # Get all files within the WOA_data directory
-WOA_path = "FishMIP_Input_Explorer/example_data/WOA_data"
+WOA_path = "FishMIP_Input_Explorer/example_data/WOA_data/"
 WOA_files = get_absolute_paths(os.listdir(WOA_path), WOA_path)
 
 # Seperate by variable
 WOA_temp = [k for k in WOA_files if 'decav81B0_t' in k]
 WOA_sali = [k for k in WOA_files if 'decav81B0_s' in k]
 
-WOA_temp = WOA_temp[:3] # Just for now while the downloads are incomplete
-
 # Open and combine files
-temp = xr.open_mfdataset(WOA_temp, engine = "h5netcdf", decode_times = False)
+temp = xr.open_mfdataset(WOA_temp, engine = "netcdf4", decode_times = False)
 
 # Fix time coordinate variable
 units, reference_date = temp.time.attrs['units'].split('since')
@@ -47,17 +47,13 @@ temp['time'] = pd.date_range(start = reference_date, periods = temp.sizes['time'
 # Isolate mean decadal monthly temperature
 df_temp = temp['t_an']
 
-# Have a look
-# df_temp
-
-# For grouping by depth and saving
+# For grouping by depth and saving (no longer in use)
 # df_temp = df_temp.chunk({'time': 12, 'depth': 2, 'lat': 720, 'lon': 1440})
 # for dep, group in df_temp.groupby('depth'):
 #     group.to_parquet(WOA_path + '/' + 'WOA_temperature_decav_monthly_' + f'{dep}.parquet', 
 #                      mode = 'w+') # Overwrites existing files
 
-df = pd.read_csv("FishMIP_Input_Explorer/example_data/FishMIP_regions_bbox.csv")
-
+# For grouping by region and saving
 for i in range(36):
     df_1 = df_temp.where(
         (df.iloc[i].xmin < df_temp.lon) & (df_temp.lon < df.iloc[i].xmax) & 
@@ -66,4 +62,28 @@ for i in range(36):
     ).to_dataframe()
     filename = f'{df.iloc[i].region.replace("i'i", "ii")}.parquet'
     filename = f'{df.iloc[i].region.replace(" ", "_")}.parquet'
-    df_1.to_parquet(WOA_path + '/' + 'WOA_temperature_decav_monthly_' + ) # Overwrites existing files
+    df_1.to_parquet(WOA_path + 'WOA_temperature_decav81B0_monthly_' + filename) # Overwrites existing files
+
+# Clear temp variable for memory
+temp = []
+
+# Open and combine salinity files
+temp = xr.open_mfdataset(WOA_sali, engine = "netcdf4", decode_times = False)
+
+# Fix time coordinate variable
+units, reference_date = temp.time.attrs['units'].split('since')
+temp['time'] = pd.date_range(start = reference_date, periods = temp.sizes['time'], freq='MS')
+
+# Isolate mean decadal monthly temperature
+df_temp = temp['s_an']
+
+# Save by region
+for i in range(36):
+    df_1 = df_temp.where(
+        (df.iloc[i].xmin < df_temp.lon) & (df_temp.lon < df.iloc[i].xmax) &
+        (df.iloc[i].ymin < df_temp.lat) & (df_temp.lat < df.iloc[i].ymax),
+        drop=True
+    ).to_dataframe()
+    filename = f'{df.iloc[i].region.replace("i'i", "ii")}.parquet'
+    filename = f'{df.iloc[i].region.replace(" ", "_")}.parquet'
+    df_1.to_parquet(WOA_path + 'WOA_salinity_decav81B0_monthly_' + filename) # Overwrites existing files
