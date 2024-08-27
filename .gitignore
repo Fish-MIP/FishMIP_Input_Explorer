@@ -5,4 +5,6 @@
 .nc
 .DS_Store
 
-example_data/WOA_data/woa23*
+example_data/WOA_data/*.nc
+example_data/WOA_data/*.parquet
+

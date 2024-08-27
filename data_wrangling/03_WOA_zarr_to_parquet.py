@@ -3,7 +3,8 @@
 # Converting downloaded WOA data to useable format
 # Author: Tormey Reimer
 # Date: 2024-08-27
-# This script consolidates the zarr data and converts it into parquets.
+# This script turns the cloud-friendly zarr data into shiny-friendly 
+# parquets files.
 #
 ###########################################################################
 
@@ -14,10 +15,12 @@ import dask
 import os
 import zarr
 
+WOA_path = "example_data/WOA_data/"
+
 # Defines region bounding boxes
 df = pd.read_csv("example_data/FishMIP_regions_bbox.csv")
 
-df_temp = xarray.open_zarr("example_data/WOA_data/WOA_temperature.zarr")
+df_temp = xarray.open_zarr(WOA_path + "WOA_temperature.zarr")
 
 # For grouping by depth and saving (no longer in use)
 # df_temp = df_temp.chunk({'time': 12, 'depth': 2, 'lat': 720, 'lon': 1440})
