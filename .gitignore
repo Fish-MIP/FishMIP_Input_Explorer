@@ -6,7 +6,6 @@
 .DS_Store
 
 example_data/WOA_data/*.nc
-example_data/WOA_data/*.parquet
 example_data/download_data/*
 example_data/maps_data/*
 example_data/ts_data/*
