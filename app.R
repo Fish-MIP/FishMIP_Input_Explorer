@@ -403,28 +403,37 @@ server <- function(input, output, session) {
   ## SECOND TAB STUFF
   # Select correct file based on inputs from region and variable selected
   select_WOA_file <- reactive({
-    get_WOA_filename(reg_filename = get_reg_filename(input$region_WOA), 
-                     var_filename = str_to_lower(input$variable_WOA))
+    fname <- get_WOA_filename(reg_filename = get_reg_filename(input$region_WOA), 
+                              var_filename = str_to_lower(input$variable_WOA))
+    return(
+      list(fname = fname, data = read_parquet(fname)))
     })
   
-  # Read data from file, COLLAPSE ALL DEPTHS
+  # Read data from file, surface only
   map_WOA_data <- reactive({
-    read_parquet(select_WOA_file()) %>% 
-      filter(!is.na(s_an)) %>% 
-      group_by(time, lat, lon) %>% 
-      reframe(value = mean(s_an))
+    select_WOA_file()$data %>% 
+      filter(!is.na(value))
     })
 
+  ts_WOA_data <- reactive({
+    select_WOA_file()$data %>% 
+      filter(!is.na(value))
+  })
+  
   output$map_WOA <- renderPlot({
     plot(map_WOA_data()$lat[1:10], map_WOA_data()$lon[1:10])
+  }, height = 500, width = 1000)
+
+  output$ts_WOA <- renderPlot({
+    plot(ts_WOA_data()$lat[1:10], ts_WOA_data()$lon[1:10])
   }, height = 500, width = 1000)
   
   output$download_WOA <- downloadHandler(
     filename = function(){
-      str_c("downloaded_", select_WOA_file(), ".csv") # Needs some trimming, currently gives full path
+      str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
       },
     # Creating name of download file based on original file name
-    content = function(file){write_csv(x = map_WOA_data(), file = file)}
+    content = function(file){write_csv(x = map_WOA_data()$data, file = file)}
   )
   
 }

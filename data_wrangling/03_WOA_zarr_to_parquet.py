@@ -28,7 +28,8 @@ df_temp = xr.open_zarr(WOA_path + "WOA_temperature.zarr")
 for i in range(36):
     df_1 = df_temp.where(
         (df.iloc[i].xmin < df_temp.lon) & (df_temp.lon < df.iloc[i].xmax) &
-        (df.iloc[i].ymin < df_temp.lat) & (df_temp.lat < df.iloc[i].ymax),
+        (df.iloc[i].ymin < df_temp.lat) & (df_temp.lat < df.iloc[i].ymax) &
+        (df_temp.depth == 0),
         drop=True
     ).to_dataframe().reset_index()
     df_1 = pd.melt(df_1, id_vars = ['time', 'depth', 'lat', 'lon'], value_vars = 't_an', var_name = 'variable', value_name = 'value').set_index(['time', 'depth', 'lat', 'lon'])
@@ -45,7 +46,8 @@ df_temp = xr.open_zarr("example_data/WOA_data/WOA_salinity.zarr")
 for i in range(36):
     df_1 = df_temp.where(
         (df.iloc[i].xmin < df_temp.lon) & (df_temp.lon < df.iloc[i].xmax) &
-        (df.iloc[i].ymin < df_temp.lat) & (df_temp.lat < df.iloc[i].ymax),
+        (df.iloc[i].ymin < df_temp.lat) & (df_temp.lat < df.iloc[i].ymax) &
+        (df_temp.depth == 0),
         drop=True
     ).to_dataframe().reset_index()
     df_1 = pd.melt(df_1, id_vars = ['time', 'depth', 'lat', 'lon'], value_vars = 's_an', var_name = 'variable', value_name = 'value').set_index(['time', 'depth', 'lat', 'lon'])
