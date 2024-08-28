@@ -161,7 +161,7 @@ ui <- fluidPage(
                    p(em("Optional: "), "Get a copy"),
                    
                    # Download option
-                   downloadButton(outputId = "download_data_gfdl", 
+                   downloadButton(outputId = "download_WOA", 
                                   label = "Download")
                    ),
       mainPanel(
@@ -418,6 +418,15 @@ server <- function(input, output, session) {
   output$map_WOA <- renderPlot({
     plot(map_WOA_data()$lat[1:10], map_WOA_data()$lon[1:10])
   }, height = 500, width = 1000)
+  
+  output$download_WOA <- downloadHandler(
+    filename = function(){
+      str_c("downloaded_", select_WOA_file(), ".csv") # Needs some trimming, currently gives full path
+      },
+    # Creating name of download file based on original file name
+    content = function(file){write_csv(x = map_WOA_data(), file = file)}
+  )
+  
 }
 
 shinyApp(ui = ui, server = server)
