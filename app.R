@@ -256,6 +256,9 @@ ui <- fluidPage(
 # Define actions ---------------------------------------------------------------
 server <- function(input, output, session) {
 ## Model tab -------------------------------------------------------------------
+  
+#bs_themer()
+  
   # Selecting correct file based on inputs from region and env variable selected
   region_fishmip <- reactive({
     # Get region selected
@@ -497,6 +500,7 @@ server <- function(input, output, session) {
     ggplot(df, aes(x = lon, y = lat, fill = value)) +
       geom_tile() +
       coord_cartesian() +
+      scale_fill_viridis_c() +
       geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F) +
       guides(fill = guide_colorbar(title = map_WOA_data()$figlabel, 
                                    title.position = "top", title.hjust = 0.5)) +
