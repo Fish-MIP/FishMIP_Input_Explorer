@@ -76,7 +76,7 @@ get_WOA_filename <- function(reg_nicename, var_nicename) {
     str_subset(reg_filename) %>% 
     str_subset(var_filename)
 }
-get_obs_filename <- function(reg_nicename, var_nicename) {
+get_mom_filename <- function(reg_nicename, var_nicename) {
   reg_filename <- reg_nicename %>% 
     str_replace_all(" ", "-") %>% # Replace spaces with underscores
     str_replace_all("i'i", "ii") %>% # Replace Hawai'i with Hawaii
@@ -175,37 +175,37 @@ ui <- fluidPage(
                    )
                  )
                ),
-      tabPanel("Compare model with observations",
-               sidebarLayout(
-                 sidebarPanel(
-                   h4(strong("Instructions:")),
-
-                   # Choose region of interest
-                   p("1. Select region"),
-                   selectInput(inputId = "region_WOA", label = NULL,
-                               choices = keys$region, selected = "Brazil NE"),
-
-                   # Choose variable of interest
-                   p("2. Choose variable"),
-                   selectInput(inputId = "variable_WOA", label = NULL,
-                               choices = varkeys$variable,  selected = "Salinity"),
-                   p("3a. Click on the ", strong('Climatological maps'), " tab "),
-                   p("3b. Click on the ", strong('Time series plot'), " tab "),
-                   p(em("Optional: "), "Get a copy"),
-
-                   # Download option
-                   downloadButton(outputId = "download_WOA", label = "Download")
-                   ),
-                 mainPanel(
-                   tabsetPanel(
-                     tabPanel("Climatological maps", 
-                              mainPanel(plotOutput(outputId = "map_WOA_mom", width = "100%"))),
-                     tabPanel("Time series plot",
-                              mainPanel(plotOutput(outputId = "ts_WOA_mom", width = "100%")))
-                     )
-                   )
-                 )
-               ),
+      # tabPanel("Compare model with observations",
+      #          sidebarLayout(
+      #            sidebarPanel(
+      #              h4(strong("Instructions:")),
+      # 
+      #              # Choose region of interest
+      #              p("1. Select region"),
+      #              selectInput(inputId = "region_WOA_mom", label = NULL,
+      #                          choices = keys$region, selected = "Brazil NE"),
+      # 
+      #              # Choose variable of interest
+      #              p("2. Choose variable"),
+      #              selectInput(inputId = "variable_WOA_mom", label = NULL,
+      #                          choices = varkeys$variable,  selected = "Salinity"),
+      #              p("3a. Click on the ", strong('Climatological maps'), " tab "),
+      #              p("3b. Click on the ", strong('Time series plot'), " tab "),
+      #              p(em("Optional: "), "Get a copy"),
+      # 
+      #              # Download option
+      #              downloadButton(outputId = "download_WOA_mom", label = "Download")
+      #              ),
+      #            mainPanel(
+      #              tabsetPanel(
+      #                tabPanel("Climatological maps", 
+      #                         mainPanel(plotOutput(outputId = "map_WOA_mom", width = "100%"))),
+      #                tabPanel("Time series plot",
+      #                         mainPanel(plotOutput(outputId = "ts_WOA_mom", width = "100%")))
+      #                )
+      #              )
+      #            )
+      #          ),
     tabPanel(title = "About",
              mainPanel(
                br(), h3(strong("About this website")),
@@ -315,24 +315,25 @@ server <- function(input, output, session) {
   output$map_gfdl <- renderPlot({
     df <- var_fishmip()$map_data
     
-    #Adjusting map proportions
+    # Adjusting map proportions
     minx <- min(df$lon)
     maxx <- max(df$lon)
     miny <- min(df$lat)
     maxy <- max(df$lat)
-    #Calculate range
+    
+    # Calculate range
     rangex <- abs(abs(maxx)-abs(minx))
     rangey <- abs(abs(maxy)-abs(miny))
-    #Check if map crosses international date line
-    if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean", 
-                                negate = T)){
+    
+    # Check if map crosses international date line
+    if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean", negate = T)){
       df <- df |>
         mutate(lon = lon%%360)
       minx <- min(df$lon)
       maxx <- max(df$lon)
       rangex <- abs(abs(maxx)-abs(minx))
     }
-    #Apply scaler function
+    # Apply scaler function
     if(rangex >= 1.15*rangey){
       ylims <- c(scaler(miny, "min"),
                  scaler(maxy, "max"))
@@ -350,7 +351,7 @@ server <- function(input, output, session) {
                  scaler(maxy, "max"))
     }
     
-    #Plotting map
+    # Plotting map
     df |> 
       ggplot(aes(x = lon, y = lat, fill = vals)) +
       geom_tile()+
@@ -359,11 +360,9 @@ server <- function(input, output, session) {
                                                   frame.colour = "blue", 
                                                   title.vjust = 0.75),
                            na.value = NA) +
-      geom_sf(inherit.aes = F, data = world, lwd = 0.25,
-              color = "black", show.legend = F)+
+      geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F)+
       guides(fill = guide_colorbar(title = var_fishmip()$fig_label, 
-                                   title.position = "top", 
-                                   title.hjust = 0.5))+
+                                   title.position = "top", title.hjust = 0.5))+
       labs(title = var_fishmip()$std_name)+
       prettyplot_theme +
       coord_sf(xlims, ylims)
@@ -379,19 +378,12 @@ server <- function(input, output, session) {
      scale_color_manual(breaks = c("area weighted mothly mean", 
                                    "linear temporal trend"), 
                         values = c("#004488", "#bb5566"))+
-     theme_bw() +
      scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months", 
                   expand = expansion(0.02)) +
      guides(color = guide_legend(title = element_blank())) +
      labs(title = var_fishmip()$std_name,
           y = var_fishmip()$fig_label)+
-     theme(axis.text.y = element_text(size = 14),
-           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, 
-                                      size = 14),
-           axis.title.y = element_text(size = 15), 
-           axis.title.x = element_blank(),
-           plot.title = element_text(hjust = 0.5, size = 15),
-           legend.position = "bottom", legend.text = element_text(size = 15))
+      prettyplot_theme
    }, height = 500, width = 1000)
 
   # Loading download dataset
@@ -418,7 +410,7 @@ server <- function(input, output, session) {
     })
   
   select_mom_data <- reactive({
-    fname <- get_obs_filename(reg_nicename = input$region_WOA, 
+    fname <- get_mom_filename(reg_nicename = input$region_WOA, 
                               var_nicename = input$variable_WOA)
     
     maps_mom <- read_csv(fname$map, col_select = c('lat', 'lon', 'vals')) %>% 
@@ -435,20 +427,36 @@ server <- function(input, output, session) {
   
   # Read WOA data from file, surface only
   map_WOA_data <- reactive({
-    select_WOA_file()$data %>%
+    df <- select_WOA_file()$data %>%
       filter(!is.na(value)) %>% 
       select(-depth, -variable) %>% 
       group_by(lat, lon) %>% 
       reframe(value = mean(value))
-    })
+    xlab <- "Xlabel here"
+    ylab <- "ylabel here"
+    title <- "Title here"
+    return(list(
+      df = df, 
+      title = title, figlabel = "lsadkhgpoifdbg",
+      xlab = xlab, ylab = ylab
+    ))
+  })
 
   ts_WOA_data <- reactive({
-    select_WOA_file()$data %>%
+    df <- select_WOA_file()$data %>%
       filter(!is.na(value)) %>% 
       mutate(date = as.Date(time)) %>% 
       select(-depth, -variable, -time) %>% 
       group_by(date) %>% 
       reframe(value = mean(value))
+    xlab <- "Xlabel here"
+    ylab <- "ylabel here"
+    title <- "Title here"
+    return(list(
+      df = df, 
+      title = title, figlabel = "lsadkhgpoifdbg",
+      xlab = xlab, ylab = ylab
+    ))
   })
   
   map_WOA_mom_data <- reactive({
@@ -460,7 +468,7 @@ server <- function(input, output, session) {
     title <- "Title here"
     return(list(
       df = df, 
-      title = title,
+      title = title, figlabel = "lsadkhgpoifdbg",
       xlab = xlab, ylab = ylab
     ))
   })
@@ -468,7 +476,7 @@ server <- function(input, output, session) {
   ts_WOA_mom_data <- reactive({
     df <- bind_rows(
       list(select_mom_data()$ts_mom %>% mutate(source = "MOM5 model output"), 
-           ts_WOA_data() %>% mutate(source = "WOA observations")))
+           ts_WOA_data()$df %>% mutate(source = "WOA observations")))
     xlab <- "Xlabel here"
     ylab <- "ylabel here"
     title <- "Title here"
@@ -480,11 +488,61 @@ server <- function(input, output, session) {
   })
   
   output$map_WOA <- renderPlot({
-    plot(map_WOA_data()$lat[1:10], map_WOA_data()$lon[1:10])
+    df <- map_WOA_data()$df
+    
+    # Adjusting map proportions
+    minx <- min(df$lon)
+    maxx <- max(df$lon)
+    miny <- min(df$lat)
+    maxy <- max(df$lat)
+    
+    # Calculate range
+    rangex <- abs(abs(maxx)-abs(minx))
+    rangey <- abs(abs(maxy)-abs(miny))
+    
+    # Check if map crosses international date line
+    if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean", negate = T)){
+      df <- df |>
+        mutate(lon = lon%%360)
+      minx <- min(df$lon)
+      maxx <- max(df$lon)
+      rangex <- abs(abs(maxx)-abs(minx))
+    }
+    # Apply scaler function
+    if(rangex >= 1.15*rangey){
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+      xlims <- c(scaler(minx, "min", ratio = T),
+                 scaler(maxx, "max", ratio = T))
+    }else if(rangey >= 1.15*rangex){
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min", ratio = T),
+                 scaler(maxy, "max", ratio = T))
+    }else{
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+    }
+    
+    # Plotting map
+    ggplot(df, aes(x = lon, y = lat, fill = value)) +
+      geom_tile() +
+      coord_cartesian() +
+      geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F) +
+      guides(fill = guide_colorbar(title = map_WOA_data()$figlabel, 
+                                   title.position = "top", title.hjust = 0.5)) +
+      labs(title = map_WOA_data()$title) +
+      prettyplot_theme +
+      coord_sf(xlims, ylims)
   }, height = 500, width = 1000)
 
   output$ts_WOA <- renderPlot({
-    plot(ts_WOA_data()$lat[1:10], ts_WOA_data()$lon[1:10])
+    df <- ts_WOA_data()$df
+    ggplot(df, aes(x = date, y = value)) +
+      geom_line() +
+      prettyplot_theme
   }, height = 500, width = 1000)
   
   output$map_WOA_mom <- renderPlot({
