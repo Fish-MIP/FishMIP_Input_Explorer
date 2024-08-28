@@ -33,11 +33,10 @@ get_reg_filename <- function(reg_nicename) {
 get_var_filename <- function(var_nicename) {
   varkeys$code[varkeys$variable == var_nicename]
 }
-get_WOA_data <- function(reg_filename, var_filename) {
+get_WOA_filename <- function(reg_filename, var_filename) {
   WOA_files %>% 
     str_subset(reg_filename) %>% 
-    str_subset(var_filename) %>% 
-    read_parquet()
+    str_subset(var_filename)
 }
 
 # First tab data ----------------------------------------------------------
@@ -402,11 +401,19 @@ server <- function(input, output, session) {
     content = function(file){write_csv(down_fishmip(), file)})
   
   ## SECOND TAB STUFF
-  # Selecting correct file based on inputs from region and env variable selected
+  # Select correct file based on inputs from region and variable selected
+  select_WOA_file <- reactive({
+    get_WOA_filename(reg_filename = get_reg_filename(input$region_WOA), 
+                     var_filename = str_to_lower(input$variable_WOA))
+    })
+  
+  # Read data from file, COLLAPSE ALL DEPTHS
   map_WOA_data <- reactive({
-    get_WOA_data(reg_filename = get_reg_filename(input$region_WOA), 
-                 var_filename = str_to_lower(input$variable_WOA))
-  })
+    read_parquet(select_WOA_file()) %>% 
+      filter(!is.na(s_an)) %>% 
+      group_by(time, lat, lon) %>% 
+      reframe(value = mean(s_an))
+    })
 
   output$map_WOA <- renderPlot({
     plot(map_WOA_data()$lat[1:10], map_WOA_data()$lon[1:10])
