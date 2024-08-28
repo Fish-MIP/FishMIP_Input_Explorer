@@ -7,9 +7,7 @@ library(bslib)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
-
-# OHW directory  -------------------------------------------------------------
-base_dir <- "example_data/" # directory for OHW datasets
+library(arrow)
 
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
@@ -17,13 +15,32 @@ base_dir <- "example_data/" # directory for OHW datasets
 fishmip_masks <- "example_data/"
 
 # Keys to interpret raster mask
-keys <- read_csv(list.files(fishmip_masks, pattern = "FishMIP_regions_keys.csv",
-                            full.names = T))
+keys <- read_csv(list.files(fishmip_masks, "FishMIP_regions_keys.csv", full.names = T))
+varkeys <- read_csv(list.files(fishmip_masks, "WOA_variables_keys.csv", full.names = T))
+base_dir <- "example_data/" # directory for OHW datasets
 
-# Get list of variables with four dimensions (lon, lat, time and depth)
-# four_dim_mods <- read_csv("Masks_netcdf_csv/four_dimensional_rasters.csv") |>
-#   pull(vars)
+# OHW data  ``-------------------------------------------------------------
+WOA_files <- list.files(str_c(base_dir, "WOA_data"), full.names = T) %>% 
+  str_subset(pattern = ".parquet")
 
+# Helper function to get correct parquet filename from the selected region
+get_reg_filename <- function(reg_nicename) {
+  reg_fname <- reg_nicename %>% 
+    str_replace_all(" ", "_") %>% # Replace spaces with underscores
+    str_replace_all("i'i", "ii") # Replace Hawai'i with Hawaii
+  return(reg_fname)
+}
+get_var_filename <- function(var_nicename) {
+  varkeys$code[varkeys$variable == var_nicename]
+}
+get_WOA_data <- function(reg_filename, var_filename) {
+  WOA_files %>% 
+    str_subset(reg_filename) %>% 
+    str_subset(var_filename) %>% 
+    read_parquet()
+}
+
+# First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
 # base_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
 #                       "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
@@ -124,7 +141,39 @@ ui <- fluidPage(
                  )
                )
     ),
-    tabPanel("Visualise observational data"),
+    tabPanel("World Ocean Atlas data",
+    sidebarLayout(
+      sidebarPanel(h4(strong("Instructions:")),
+                   
+                   # Choose region of interest
+                   p("1. Select region"),
+                   selectInput(inputId = "region_WOA", 
+                               label = NULL,
+                               choices = keys$region, selected = "Baltic Sea EwE"),
+                   
+                   # Choose variable of interest
+                   p("2. Choose variable"),
+                   selectInput(inputId = "variable_WOA",
+                               label = NULL,
+                               choices = varkeys$variable, 
+                               selected = "Temperature"),
+                   p("3a. Click on the ", strong('Climatological maps'), " tab "),
+                   p("3b. Click on the ", strong('Time series plot'), " tab "),
+                   p(em("Optional: "), "Get a copy"),
+                   
+                   # Download option
+                   downloadButton(outputId = "download_data_gfdl", 
+                                  label = "Download")
+                   ),
+      mainPanel(
+        tabsetPanel(
+          tabPanel("Climatological maps", 
+                   mainPanel(plotOutput(outputId = "map_WOA", width = "100%"))),
+          tabPanel("Time series plot",
+                   mainPanel(plotOutput(outputId = "ts_WOA", width = "100%")))
+          )
+        )
+      )),
     tabPanel("Compare GFDL-MOM6-COBALT2 against observations"),
     tabPanel(title = "About",
              mainPanel(
@@ -184,6 +233,8 @@ ui <- fluidPage(
 
 # Define actions ----------------------------------------------------------
 server <- function(input, output, session) {
+  
+  ## FIRST TAB STUFF
   # Selecting correct file based on inputs from region and env variable selected
   region_fishmip <- reactive({
     # Get region selected
@@ -202,7 +253,7 @@ server <- function(input, output, session) {
     return(file_path)
   })
   
-  #Loading dataset
+  # Loading dataset
   var_fishmip <- reactive({
     #Get full file path to relevant file
     map_file <- file.path(maps_dir, region_fishmip())
@@ -310,52 +361,56 @@ server <- function(input, output, session) {
             legend.text = element_text(size = 15), 
             legend.title = element_text(size = 15))+
       coord_sf(xlims, ylims)
-  },
-  height = 500, width = 1000)
+  }, height = 500, width = 1000)
 
-   output$ts_gfdl <- renderPlot({
-     #calculate spatially weighted average of variables selected
-     var_fishmip()$ts_data |>
-       #Plot weighted means
-       ggplot(aes(x = date, y = vals)) +
-       geom_line(aes(color = "area weighted mothly mean")) +
-       geom_smooth(aes(color = "linear temporal trend"))+
-       scale_color_manual(breaks = c("area weighted mothly mean", 
-                                     "linear temporal trend"), 
-                          values = c("#004488", "#bb5566"))+
-       theme_bw() +
-       scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months", 
-                    expand = expansion(0.02))+
-       guides(color = guide_legend(title = element_blank()))+
-       labs(title = var_fishmip()$std_name,
-            y = var_fishmip()$fig_label)+
-       theme(axis.text.y = element_text(size = 14),
-             axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, 
-                                        size = 14),
-             axis.title.y = element_text(size = 15), 
-             axis.title.x = element_blank(),
-             plot.title = element_text(hjust = 0.5, size = 15),
-             legend.position = "bottom", legend.text = element_text(size = 15))
-     },
-     height = 500, width = 1000)
+  output$ts_gfdl <- renderPlot({
+   #calculate spatially weighted average of variables selected
+   var_fishmip()$ts_data |>
+     #Plot weighted means
+     ggplot(aes(x = date, y = vals)) +
+     geom_line(aes(color = "area weighted mothly mean")) +
+     geom_smooth(aes(color = "linear temporal trend"))+
+     scale_color_manual(breaks = c("area weighted mothly mean", 
+                                   "linear temporal trend"), 
+                        values = c("#004488", "#bb5566"))+
+     theme_bw() +
+     scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months", 
+                  expand = expansion(0.02))+
+     guides(color = guide_legend(title = element_blank()))+
+     labs(title = var_fishmip()$std_name,
+          y = var_fishmip()$fig_label)+
+     theme(axis.text.y = element_text(size = 14),
+           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, 
+                                      size = 14),
+           axis.title.y = element_text(size = 15), 
+           axis.title.x = element_blank(),
+           plot.title = element_text(hjust = 0.5, size = 15),
+           legend.position = "bottom", legend.text = element_text(size = 15))
+   }, height = 500, width = 1000)
 
-   #Loading download dataset
-   down_fishmip <- reactive({
-     #Get full file path to relevant file
+  # Loading download dataset
+  down_fishmip <- reactive({
+     # Get full file path to relevant file
      down_file <- file.path(download_dir, region_fishmip())
-     #Load file
+     # Load file
      down_df <- read_csv(down_file)
    })
    
-   output$download_data <- downloadHandler(
-     filename = function(){
-       region_fishmip()
-     },
-     #Creating name of download file based on original file name
-     content = function(file){
-       write_csv(down_fishmip(), file)
-     }
-   )
+  output$download_data <- downloadHandler(
+    filename = function(){region_fishmip()},
+    # Creating name of download file based on original file name
+    content = function(file){write_csv(down_fishmip(), file)})
+  
+  ## SECOND TAB STUFF
+  # Selecting correct file based on inputs from region and env variable selected
+  map_WOA_data <- reactive({
+    get_WOA_data(reg_filename = get_reg_filename(input$region_WOA), 
+                 var_filename = str_to_lower(input$variable_WOA))
+  })
+
+  output$map_WOA <- renderPlot({
+    plot(map_WOA_data()$lat[1:10], map_WOA_data()$lon[1:10])
+  }, height = 500, width = 1000)
 }
 
 shinyApp(ui = ui, server = server)
