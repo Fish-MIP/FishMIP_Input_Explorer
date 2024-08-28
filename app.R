@@ -97,193 +97,154 @@ get_obs_filename <- function(reg_nicename, var_nicename) {
 # Defining user interface -----------------------------------------------
 ui <- fluidPage(
     theme = bs_theme(bootswatch = "yeti"),
-    titlePanel(title = span(img(src = "FishMIP_logo.jpg", height = 100,
-                                width = 300, style = "display: block;
-                                                      margin-left: auto;
-                                                      margin-right:auto"),
-               h1("Regional Climate Forcing Data Explorer",
-                  style = "background-color:#f3f3f3;
-                           border:1.5px solid #c9d5ea;
-                           padding-left: 15px;
-                           padding-bottom: 10px;
-                           padding-top: 10px;
-                           text-align: center;
-                           font-weight: bold")),
+    titlePanel(title = span(img(src = "FishMIP_logo.jpg", 
+                                height = 100, width = 300, 
+                                style = "display: block; margin-left: auto; margin-right:auto"),
+                            h1("Regional Climate Forcing Data Explorer",
+                            style = "background-color:#f3f3f3; border:1.5px solid #c9d5ea; 
+                            padding-left: 15px; padding-bottom: 10px; padding-top: 10px;
+                            text-align: center; font-weight: bold")),
                windowTitle = "FishMIP Regional Climate Forcing Data Explorer"),
     tabsetPanel(
       tabPanel("Visualise GFDL-MOM6-COBALT2 outputs",
-             sidebarLayout(
-               sidebarPanel(h4(strong("Instructions:")),
-                            
-                            #Choose region of interest
-                            p("1. Select the FishMIP regional model you would 
-                              like to visualise"),
-                            selectInput(inputId = "region_gfdl", 
-                            label = NULL,
-                            choices = keys$region, selected = "Prydz Bay"),
-                            
-                            #Choose variable of interest
-                            p("2. Choose an environmental variable to 
-                              visualise"),
-                            selectInput(inputId = "variable_gfdl",
-                            label = NULL,
-                            choices = varNames, selected = "tos"),
-                            
-                            p("3a. Click on the ", 
-                              strong('Climatological maps'), " tab on the 
-                              right to see a map of the climatological mean 
-                              (1961-2010) for the variable of your choice 
-                              within your region of interest"),
-                            p("3b. Click on the ", strong('Time 
-                            series plot'), " tab to see a time series of area 
-                            weighted yearly mean for the variable and region of
-                            your choice."),
-                            
-                            p(em("Optional: "), "Get a copy of the data 
-                            used to create these plots by clicking the 
-                            'Download' button below."),
-                            
-                            #Download option
-                            downloadButton(outputId = "download_data_gfdl", 
-                                           label = "Download")
-                            ),
-               mainPanel(
-                 tabsetPanel(
-                   tabPanel("Climatological maps",
-                            mainPanel(
-                              plotOutput(outputId = "map_gfdl", width = "100%")
-                              )
-                            ),
-                   tabPanel("Time series plot",
-                            mainPanel(
-                              plotOutput(outputId = "ts_gfdl", width = "100%")
-                            )
-                            )
-                   )
-                 )
-               )
-    ),
-    tabPanel("World Ocean Atlas data",
-    sidebarLayout(
-      sidebarPanel(h4(strong("Instructions:")),
+               sidebarLayout(
+                 sidebarPanel(
+                   h4(strong("Instructions:")),
                    
                    # Choose region of interest
-                   p("1. Select region"),
-                   selectInput(inputId = "region_WOA", 
-                               label = NULL,
+                   p("1. Select the FishMIP regional model you would like to visualise."),
+                   selectInput(inputId = "region_gfdl", label = NULL,
                                choices = keys$region, selected = "Brazil NE"),
                    
                    # Choose variable of interest
+                   p("2. Choose an environmental variable to visualise."),
+                   selectInput(inputId = "variable_gfdl",label = NULL,
+                               choices = varNames, selected = "tos"),
+                   
+                   p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the 
+                     climatological mean (1961-2010) for the variable of your choice within your region of interest"),
+                   p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area 
+                     weighted yearly mean for the variable and region of your choice."),
+                   
+                   p(em("Optional: "), "Get a copy of the data used to create these plots by clicking the 'Download' button below."),
+                   # Download option
+                   downloadButton(outputId = "download_data_gfdl", label = "Download")
+                   ),
+                 mainPanel(
+                   tabsetPanel(
+                     tabPanel("Climatological maps",
+                              mainPanel(plotOutput(outputId = "map_gfdl", width = "100%"))
+                              ),
+                     tabPanel("Time series plot",
+                              mainPanel(plotOutput(outputId = "ts_gfdl", width = "100%"))
+                              )
+                     )
+                   )
+                 )
+               ),
+      tabPanel("World Ocean Atlas data",
+               sidebarLayout(
+                 sidebarPanel(
+                   h4(strong("Instructions:")),
+                   
+                   # Choose region of interest
+                   p("1. Select the region you would like to visualise."),
+                   selectInput(inputId = "region_WOA", label = NULL,
+                               choices = keys$region, selected = "Brazil NE"),
+                   
+                   # Choose variable of interest
+                   p("2. Choose an environmental variable to visualise."),
+                   selectInput(inputId = "variable_WOA", label = NULL,
+                               choices = varkeys$variable, selected = "Salinity"),
+                   p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the climatological 
+                     mean (1981-2010) for observations of the variable of your choice within your region of interest"),
+                   p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area-weighted 
+                     monthly mean for the variable and region of your choice."),
+                   
+                   p(em("Optional: "), "Get a copy of the data used to create these plots by clicking the 'Download' button below."),
+                   # Download option
+                   downloadButton(outputId = "download_WOA", label = "Download")
+                   ),
+                 mainPanel(
+                   tabsetPanel(
+                     tabPanel("Climatological maps", 
+                              mainPanel(plotOutput(outputId = "map_WOA", width = "100%"))),
+                     tabPanel("Time series plot",
+                              mainPanel(plotOutput(outputId = "ts_WOA", width = "100%")))
+                     )
+                   )
+                 )
+               ),
+      tabPanel("Compare model with observations",
+               sidebarLayout(
+                 sidebarPanel(
+                   h4(strong("Instructions:")),
+
+                   # Choose region of interest
+                   p("1. Select region"),
+                   selectInput(inputId = "region_WOA", label = NULL,
+                               choices = keys$region, selected = "Brazil NE"),
+
+                   # Choose variable of interest
                    p("2. Choose variable"),
-                   selectInput(inputId = "variable_WOA",
-                               label = NULL,
-                               choices = varkeys$variable, 
-                               selected = "Salinity"),
+                   selectInput(inputId = "variable_WOA", label = NULL,
+                               choices = varkeys$variable,  selected = "Salinity"),
                    p("3a. Click on the ", strong('Climatological maps'), " tab "),
                    p("3b. Click on the ", strong('Time series plot'), " tab "),
                    p(em("Optional: "), "Get a copy"),
-                   
+
                    # Download option
-                   downloadButton(outputId = "download_WOA", 
-                                  label = "Download")
+                   downloadButton(outputId = "download_WOA", label = "Download")
                    ),
-      mainPanel(
-        tabsetPanel(
-          tabPanel("Climatological maps", 
-                   mainPanel(plotOutput(outputId = "map_WOA", width = "100%"))),
-          tabPanel("Time series plot",
-                   mainPanel(plotOutput(outputId = "ts_WOA", width = "100%")))
-          )
-        )
-      )),
-    tabPanel("Compare model with observations",
-             sidebarLayout(
-               sidebarPanel(h4(strong("Instructions:")),
-                            
-                            # Choose region of interest
-                            p("1. Select region"),
-                            selectInput(inputId = "region_WOA", 
-                                        label = NULL,
-                                        choices = keys$region, selected = "Brazil NE"),
-                            
-                            # Choose variable of interest
-                            p("2. Choose variable"),
-                            selectInput(inputId = "variable_WOA",
-                                        label = NULL,
-                                        choices = varkeys$variable, 
-                                        selected = "Salinity"),
-                            p("3a. Click on the ", strong('Climatological maps'), " tab "),
-                            p("3b. Click on the ", strong('Time series plot'), " tab "),
-                            p(em("Optional: "), "Get a copy"),
-                            
-                            # Download option
-                            downloadButton(outputId = "download_WOA", 
-                                           label = "Download")
-               ),
-               mainPanel(
-                 tabsetPanel(
-                   tabPanel("Climatological maps", 
-                            mainPanel(plotOutput(outputId = "map_WOA_mom", width = "100%"))),
-                   tabPanel("Time series plot",
-                            mainPanel(plotOutput(outputId = "ts_WOA_mom", width = "100%")))
+                 mainPanel(
+                   tabsetPanel(
+                     tabPanel("Climatological maps", 
+                              mainPanel(plotOutput(outputId = "map_WOA_mom", width = "100%"))),
+                     tabPanel("Time series plot",
+                              mainPanel(plotOutput(outputId = "ts_WOA_mom", width = "100%")))
+                     )
+                   )
                  )
-               )
-             )),
+               ),
     tabPanel(title = "About",
              mainPanel(
-               br(),
-               h3(strong("About this website")),
-               p("This tool allows regional modellers to visualise 
-                 environmental data from GFDL-MOM6-COBALT2 and from 
-                 observations to determine if bias correction needs to be 
-                 applied to the data prior to its use as forcings of a regional
-                 marine ecosystem model."),
-               br(),
-               h3(strong("Who is FishMIP?")),
-               p("The Fisheries and Marine Ecosystem Model Intercomparison 
-               Project (FishMIP) is an network of more than 100 marine ecosystem
-               modellers and researchers from around the world. Our goal is to 
-               bring together our collective understanding to help better 
-               project the long-term impacts of climate change on fisheries and 
-               marine ecosystems, and to use our findings to help inform policy.
-               You can find more information about FishMIP on our ",
-               tags$a(href="https://fishmip.org/", "website.")),
-               br(),
-               h3(strong("How should I use this tool?")),
+               br(), h3(strong("About this website")),
+               p("This tool allows regional modellers to visualise environmental data from GFDL-MOM6-COBALT2 and from observations to 
+                 determine if bias correction needs to be applied to the data prior to its use as forcings of a regionalmarine ecosystem model."),
+               
+               br(), h3(strong("Who is FishMIP?")),
+               p("The Fisheries and Marine Ecosystem Model Intercomparison Project (FishMIP) is an network of more than 100 marine ecosystem
+               modellers and researchers from around the world. Our goal is to bring together our collective understanding to help better 
+               project the long-term impacts of climate change on fisheries and marine ecosystems, and to use our findings to help inform policy.
+               You can find more information about FishMIP on our ", tags$a(href="https://fishmip.org/", "website.")),
+               
+               br(), h3(strong("How should I use this tool?")),
                p("This site has xxx tabs."),
-               br(),
-               h3(strong("How should I cite data from this site?")),
-               p("You can download the data used to create the plots shown in 
-                 this interactive tool using the 'Download' button included 
-                 under each tab. As a condition of this tool to access data, 
-                 you must cite its use. Please use the following citations:"),
+               
+               br(), h3(strong("How should I cite data from this site?")),
+               p("You can download the data used to create the plots shown in this interactive tool using the 'Download' button included 
+                 under each tab. As a condition of this tool to access data, you must cite its use. Please use the following citations:"),
+               
                p("- Citation 1"),
-               p("When using the data product in a publication, please include 
-               the following citation in addition to the data product citations 
+               p("When using the data product in a publication, please include the following citation in addition to the data product citations 
                provided above:"),
-               p("- Citation 2"),
-               br(),
-               h3(strong("How can I contact you?")),
+               p("- Citation 2"), 
+               
+               br(), h3(strong("How can I contact you?")),
                p("If you would   "),
-               br(),
-               h4(strong("Acknowledgments")),
-               p("The development of this tool was funded by the Australian 
-                 Government through the Australian Research Council (ARC) 
-                 XXXXX Project XXXX. We gratefully acknowledge contributions 
-                 from coordinators and contributing modellers of the FishMIP 
-                 and ISIMIP communities. We would also like to acknowledge the 
-                 use of computing facilities provided by Digital Research 
+               
+               br(), h4(strong("Acknowledgments")),
+               p("The development of this tool was funded by the Australian Government through the Australian Research Council (ARC) 
+                 XXXXX Project XXXX. We gratefully acknowledge contributions from coordinators and contributing modellers of the FishMIP 
+                 and ISIMIP communities. We would also like to acknowledge the use of computing facilities provided by Digital Research 
                  Services, IT Services at the University of Tasmania."),
-               br(),
-               # card(img(src = "IMAS_logo.png", height = 150, width = 300, 
-               # style = "display: block; margin-left: auto; margin-right:auto")),
-               br(),
-               br()
+               
+               br(),# card(img(src = "IMAS_logo.png", height = 150, width = 300, style = "display: block; margin-left: auto; margin-right:auto")),
+               br(),br()
+               )
              )
-           )
     )
-)
-
+    )
 
 # Define actions ----------------------------------------------------------
 server <- function(input, output, session) {
