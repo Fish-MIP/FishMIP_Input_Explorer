@@ -76,7 +76,7 @@ get_WOA_filename <- function(reg_nicename, var_nicename) {
     str_subset(reg_filename) %>% 
     str_subset(var_filename)
 }
-get_mom_filename <- function(reg_nicename, var_nicename) {
+get_MOM_filename <- function(reg_nicename, var_nicename) {
   reg_filename <- reg_nicename %>% 
     str_replace_all(" ", "-") %>% # Replace spaces with underscores
     str_replace_all("i'i", "ii") %>% # Replace Hawai'i with Hawaii
@@ -94,7 +94,8 @@ get_mom_filename <- function(reg_nicename, var_nicename) {
   ))
 }
 
-# Defining user interface -----------------------------------------------
+# Defining user interface ------------------------------------------------------
+## Global UI -------------------------------------------------------------------
 ui <- fluidPage(
     theme = bs_theme(bootswatch = "yeti"),
     titlePanel(title = span(img(src = "FishMIP_logo.jpg", 
@@ -105,20 +106,23 @@ ui <- fluidPage(
                             padding-left: 15px; padding-bottom: 10px; padding-top: 10px;
                             text-align: center; font-weight: bold")),
                windowTitle = "FishMIP Regional Climate Forcing Data Explorer"),
+## Model tab -------------------------------------------------------------------
     tabsetPanel(
-      tabPanel("Visualise GFDL-MOM6-COBALT2 outputs",
+      tabPanel("Model outputs",
                sidebarLayout(
                  sidebarPanel(
+                   p("The plots to the right visualise the outputs of the GFDL-MOM6-COBALT2 model."),
+                   
                    h4(strong("Instructions:")),
                    
                    # Choose region of interest
                    p("1. Select the FishMIP regional model you would like to visualise."),
-                   selectInput(inputId = "region_gfdl", label = NULL,
+                   selectInput(inputId = "region_MOM", label = NULL,
                                choices = keys$region, selected = "Brazil NE"),
                    
                    # Choose variable of interest
                    p("2. Choose an environmental variable to visualise."),
-                   selectInput(inputId = "variable_gfdl",label = NULL,
+                   selectInput(inputId = "variable_MOM",label = NULL,
                                choices = varNames, selected = "tos"),
                    
                    p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the 
@@ -128,20 +132,21 @@ ui <- fluidPage(
                    
                    p(em("Optional: "), "Get a copy of the data used to create these plots by clicking the 'Download' button below."),
                    # Download option
-                   downloadButton(outputId = "download_data_gfdl", label = "Download")
+                   downloadButton(outputId = "download_data_MOM", label = "Download")
                    ),
                  mainPanel(
                    tabsetPanel(
                      tabPanel("Climatological maps",
-                              mainPanel(plotOutput(outputId = "map_gfdl", width = "100%"))
+                              mainPanel(plotOutput(outputId = "map_MOM", width = "100%"))
                               ),
                      tabPanel("Time series plot",
-                              mainPanel(plotOutput(outputId = "ts_gfdl", width = "100%"))
+                              mainPanel(plotOutput(outputId = "ts_MOM", width = "100%"))
                               )
                      )
                    )
                  )
                ),
+## Observations tab ------------------------------------------------------------
       tabPanel("World Ocean Atlas data",
                sidebarLayout(
                  sidebarPanel(
@@ -175,37 +180,39 @@ ui <- fluidPage(
                    )
                  )
                ),
-      # tabPanel("Compare model with observations",
-      #          sidebarLayout(
-      #            sidebarPanel(
-      #              h4(strong("Instructions:")),
-      # 
-      #              # Choose region of interest
-      #              p("1. Select region"),
-      #              selectInput(inputId = "region_WOA_mom", label = NULL,
-      #                          choices = keys$region, selected = "Brazil NE"),
-      # 
-      #              # Choose variable of interest
-      #              p("2. Choose variable"),
-      #              selectInput(inputId = "variable_WOA_mom", label = NULL,
-      #                          choices = varkeys$variable,  selected = "Salinity"),
-      #              p("3a. Click on the ", strong('Climatological maps'), " tab "),
-      #              p("3b. Click on the ", strong('Time series plot'), " tab "),
-      #              p(em("Optional: "), "Get a copy"),
-      # 
-      #              # Download option
-      #              downloadButton(outputId = "download_WOA_mom", label = "Download")
-      #              ),
-      #            mainPanel(
-      #              tabsetPanel(
-      #                tabPanel("Climatological maps", 
-      #                         mainPanel(plotOutput(outputId = "map_WOA_mom", width = "100%"))),
-      #                tabPanel("Time series plot",
-      #                         mainPanel(plotOutput(outputId = "ts_WOA_mom", width = "100%")))
-      #                )
-      #              )
-      #            )
-      #          ),
+## Comparison tab --------------------------------------------------------------
+      tabPanel("Compare model with observations",
+               sidebarLayout(
+                 sidebarPanel(
+                   h4(strong("Instructions:")),
+
+                   # Choose region of interest
+                   p("1. Select region"),
+                   selectInput(inputId = "region_compare", label = NULL,
+                               choices = keys$region, selected = "Brazil NE"),
+
+                   # Choose variable of interest
+                   p("2. Choose variable"),
+                   selectInput(inputId = "variable_compare", label = NULL,
+                               choices = varkeys$variable,  selected = "Salinity"),
+                   p("3a. Click on the ", strong('Climatological maps'), " tab "),
+                   p("3b. Click on the ", strong('Time series plot'), " tab "),
+                   p(em("Optional: "), "Get a copy"),
+
+                   # Download option
+                   downloadButton(outputId = "download_data_compare", label = "Download")
+                   ),
+                 mainPanel(
+                   tabsetPanel(
+                     tabPanel("Climatological maps",
+                              mainPanel(plotOutput(outputId = "map_compare", width = "100%"))),
+                     tabPanel("Time series plot",
+                              mainPanel(plotOutput(outputId = "ts_compare", width = "100%")))
+                     )
+                   )
+                 )
+               ),
+## About tab -------------------------------------------------------------------
     tabPanel(title = "About",
              mainPanel(
                br(), h3(strong("About this website")),
@@ -246,21 +253,20 @@ ui <- fluidPage(
     )
     )
 
-# Define actions ----------------------------------------------------------
+# Define actions ---------------------------------------------------------------
 server <- function(input, output, session) {
-  
-  ## FIRST TAB STUFF
+## Model tab -------------------------------------------------------------------
   # Selecting correct file based on inputs from region and env variable selected
   region_fishmip <- reactive({
     # Get region selected
-    name_reg <- input$region_gfdl |> 
+    name_reg <- input$region_MOM |> 
       #Change to all lowercase
       str_to_lower() |> 
       #Replaces spaces " " with dashes "-" to identify correct files
       str_replace_all(" ", "-") |> 
       str_replace("'", "")
     # Get env variable selected
-    name_var <- input$variable_gfdl
+    name_var <- input$variable_MOM
     # Merge region and variable prior to identifying correct file
     sub <- str_c(name_var, "_15arcmin_", name_reg)
     #Identifying correct file
@@ -297,7 +303,7 @@ server <- function(input, output, session) {
         str_to_sentence()
     
     #Creating label for figures
-    cb_lab <- paste0(input$variable_gfdl, " (", unit, ")")
+    cb_lab <- paste0(input$variable_MOM, " (", unit, ")")
     
     #Get full file path to relevant file
     ts_file <- file.path(ts_dir, region_fishmip())
@@ -312,7 +318,7 @@ server <- function(input, output, session) {
   })
   
   # Creating first plot
-  output$map_gfdl <- renderPlot({
+  output$map_MOM <- renderPlot({
     df <- var_fishmip()$map_data
     
     # Adjusting map proportions
@@ -326,7 +332,7 @@ server <- function(input, output, session) {
     rangey <- abs(abs(maxy)-abs(miny))
     
     # Check if map crosses international date line
-    if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean", negate = T)){
+    if(rangex == 0 & str_detect(input$region_MOM, "Southern Ocean", negate = T)){
       df <- df |>
         mutate(lon = lon%%360)
       minx <- min(df$lon)
@@ -368,7 +374,7 @@ server <- function(input, output, session) {
       coord_sf(xlims, ylims)
   }, height = 500, width = 1000)
 
-  output$ts_gfdl <- renderPlot({
+  output$ts_MOM <- renderPlot({
    #calculate spatially weighted average of variables selected
    var_fishmip()$ts_data |>
      #Plot weighted means
@@ -399,91 +405,52 @@ server <- function(input, output, session) {
     # Creating name of download file based on original file name
     content = function(file){write_csv(down_fishmip(), file)})
   
-  ## SECOND TAB STUFF
+## Observations tab ------------------------------------------------------------
+  
   # Select correct file based on inputs from region and variable selected
   select_WOA_file <- reactive({
     fname <- get_WOA_filename(reg_nicename = input$region_WOA, 
                               var_nicename = input$variable_WOA)
     return(
       list(fname = fname, 
-           data = read_parquet(fname)))
+           df = read_parquet(fname)))
     })
-  
-  select_mom_data <- reactive({
-    fname <- get_mom_filename(reg_nicename = input$region_WOA, 
-                              var_nicename = input$variable_WOA)
-    
-    maps_mom <- read_csv(fname$map, col_select = c('lat', 'lon', 'vals')) %>% 
-      mutate(value = vals) %>% 
-      select(-vals)
-    ts_mom <- read_csv(fname$ts, col_select = c('date', 'vals')) %>% 
-      mutate(value = vals) %>% 
-      select(-vals)
-                        
-    return(
-      list(maps_mom = maps_mom, # merge with map_WOA_data
-           ts_mom = ts_mom)) # merge with ts_WOA_data
-  })
   
   # Read WOA data from file, surface only
   map_WOA_data <- reactive({
-    df <- select_WOA_file()$data %>%
+    df <- select_WOA_file()$df %>%
       filter(!is.na(value)) %>% 
       select(-depth, -variable) %>% 
       group_by(lat, lon) %>% 
       reframe(value = mean(value))
-    xlab <- "Xlabel here"
-    ylab <- "ylabel here"
-    title <- "Title here"
+    xlab <- "Map WOA xlabel"
+    ylab <- "Map WOA ylabel"
+    title <- "Map WOA title"
     return(list(
       df = df, 
-      title = title, figlabel = "lsadkhgpoifdbg",
-      xlab = xlab, ylab = ylab
+      title = title, 
+      figlabel = "Map WOA legend label",
+      xlab = xlab, 
+      ylab = ylab
     ))
   })
 
   ts_WOA_data <- reactive({
-    df <- select_WOA_file()$data %>%
+    df <- select_WOA_file()$df %>%
       filter(!is.na(value)) %>% 
       mutate(date = as.Date(time)) %>% 
       select(-depth, -variable, -time) %>% 
       group_by(date) %>% 
       reframe(value = mean(value))
-    xlab <- "Xlabel here"
-    ylab <- "ylabel here"
-    title <- "Title here"
+    xlab <- "TS WOA Xlabel"
+    ylab <- "TS WOA ylabel"
+    title <- "TS WOA title"
     return(list(
       df = df, 
-      title = title, figlabel = "lsadkhgpoifdbg",
-      xlab = xlab, ylab = ylab
-    ))
-  })
-  
-  map_WOA_mom_data <- reactive({
-    df <- bind_rows(
-      list(select_mom_data()$maps_mom %>% mutate(source = "MOM5 model output"), 
-           map_WOA_data() %>% mutate(source = "WOA observations")))
-    xlab <- "Xlabel here"
-    ylab <- "ylabel here"
-    title <- "Title here"
-    return(list(
-      df = df, 
-      title = title, figlabel = "lsadkhgpoifdbg",
-      xlab = xlab, ylab = ylab
-    ))
-  })
-    
-  ts_WOA_mom_data <- reactive({
-    df <- bind_rows(
-      list(select_mom_data()$ts_mom %>% mutate(source = "MOM5 model output"), 
-           ts_WOA_data()$df %>% mutate(source = "WOA observations")))
-    xlab <- "Xlabel here"
-    ylab <- "ylabel here"
-    title <- "Title here"
-    return(list(
-      df = df, 
-      title = title,
-      xlab = xlab, ylab = ylab
+      title = title, 
+      figlabel = "Map WOA legend label",
+      xlab = xlab, 
+      ylab = ylab
     ))
   })
   
@@ -501,7 +468,7 @@ server <- function(input, output, session) {
     rangey <- abs(abs(maxy)-abs(miny))
     
     # Check if map crosses international date line
-    if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean", negate = T)){
+    if(rangex == 0 & str_detect(input$region_WOA, "Southern Ocean", negate = T)){
       df <- df |>
         mutate(lon = lon%%360)
       minx <- min(df$lon)
@@ -533,34 +500,22 @@ server <- function(input, output, session) {
       geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F) +
       guides(fill = guide_colorbar(title = map_WOA_data()$figlabel, 
                                    title.position = "top", title.hjust = 0.5)) +
-      labs(title = map_WOA_data()$title) +
+      coord_sf(xlims, ylims) +
       prettyplot_theme +
-      coord_sf(xlims, ylims)
+      labs(title = map_WOA_data()$title,
+           x = map_WOA_data()$xlab,
+           y = map_WOA_data()$ylab)
   }, height = 500, width = 1000)
 
   output$ts_WOA <- renderPlot({
     df <- ts_WOA_data()$df
+    
     ggplot(df, aes(x = date, y = value)) +
       geom_line() +
-      prettyplot_theme
-  }, height = 500, width = 1000)
-  
-  output$map_WOA_mom <- renderPlot({
-    map_WOA_mom_data()$df %>% 
-      ggplot(., aes(x = lon, y = lat)) +
-      geom_tile() +
       prettyplot_theme +
-      ggtitle(label = map_WOA_mom_data()$title) +
-      labs(x = map_WOA_mom_data()$xlab, y = map_WOA_mom_data()$ylab)
-  }, height = 500, width = 1000)
-  
-  output$ts_WOA_mom <- renderPlot({
-    ts_WOA_mom_data()$df %>% 
-      ggplot(aes(x = date, y = value, colour = as.factor(source))) +
-      geom_line() +
-      prettyplot_theme +
-      ggtitle(label = ts_WOA_mom_data()$title) +
-      labs(x = ts_WOA_mom_data()$xlab, y = ts_WOA_mom_data()$ylab)
+      labs(title = map_WOA_data()$title,
+           x = map_WOA_data()$xlab,
+           y = map_WOA_data()$ylab)
   }, height = 500, width = 1000)
   
   output$download_WOA <- downloadHandler(
@@ -568,8 +523,96 @@ server <- function(input, output, session) {
       str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
       },
     # Creating name of download file based on original file name
-    content = function(file){write_csv(x = map_WOA_data()$data, file = file)}
+    content = function(file){write_csv(x = map_WOA_data()$df, file = file)}
   )
+  
+## Comparison tab --------------------------------------------------------------
+
+  select_compare_file <- reactive({
+    fname_WOA <- get_WOA_filename(reg_nicename = input$region_compare, 
+                              var_nicename = input$variable_compare)
+    fname_MOM <- get_MOM_filename(reg_nicename = input$region_compare, 
+                              var_nicename = input$variable_compare)
+    
+    df_WOA <- read_parquet(fname_WOA)
+    df_MOM <- read_parquet(fname_MOM)
+    
+    # fname <- fname # change to combine them somehow
+    return(
+      list(fname = fname, 
+           df_WOA = df_WOA,
+           df_MOM = df_MOM
+           ))
+  })
+  
+  select_compare_data <- reactive({
+    df_WOA <- select_compare_file()$df_WOA
+    
+    df_MOM <- read_csv(select_compare_file()$df_MOM, col_select = c('lat', 'lon', 'vals')) %>% 
+      mutate(value = vals) %>% 
+      select(-vals)
+    ts_mom <- read_csv(fname$ts, col_select = c('date', 'vals')) %>% 
+      mutate(value = vals) %>% 
+      select(-vals)
+    
+    return(
+      list(maps_mom = maps_mom, # merge with map_WOA_data
+           ts_mom = ts_mom)) # merge with ts_WOA_data
+  })
+  
+  map_compare_data <- reactive({
+    df <- bind_rows(
+      list(select_MOM_data()$maps_mom %>% mutate(source = "MOM5 model output"), 
+           map_WOA_data() %>% mutate(source = "WOA observations")))
+    xlab <- "Xlabel here"
+    ylab <- "ylabel here"
+    title <- "Title here"
+    return(list(
+      df = df, 
+      title = title, figlabel = "lsadkhgpoifdbg",
+      xlab = xlab, ylab = ylab
+    ))
+  })
+  
+  ts_compare_data <- reactive({
+    df <- bind_rows(
+      list(select_MOM_data()$ts_mom %>% mutate(source = "MOM5 model output"), 
+           ts_WOA_data()$df %>% mutate(source = "WOA observations")))
+    xlab <- "Xlabel here"
+    ylab <- "ylabel here"
+    title <- "Title here"
+    return(list(
+      df = df, 
+      title = title,
+      xlab = xlab, ylab = ylab
+    ))
+  })
+  
+  output$map_compare <- renderPlot({
+    map_compare_data()$df %>% 
+      ggplot(., aes(x = lon, y = lat)) +
+      geom_tile() +
+      prettyplot_theme +
+      ggtitle(label = map_compare_data()$title) +
+      labs(x = map_compare_data()$xlab, y = map_compare_data()$ylab)
+  }, height = 500, width = 1000)
+  
+  output$ts_compare <- renderPlot({
+    ts_compare_data()$df %>% 
+      ggplot(aes(x = date, y = value, colour = as.factor(source))) +
+      geom_line() +
+      prettyplot_theme +
+      ggtitle(label = ts_compare_data()$title) +
+      labs(x = ts_compare_data()$xlab, y = ts_compare_data()$ylab)
+  }, height = 500, width = 1000)
+  
+  # output$download_compare <- downloadHandler(
+  #   filename = function(){
+  #     str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
+  #   },
+  #   # Creating name of download file based on original file name
+  #   content = function(file){write_csv(x = map_WOA_data()$data, file = file)}
+  # )
   
 }
 
