@@ -2,16 +2,14 @@
 library(shiny)
 library(shinyWidgets)
 library(readr)
-library(stringr)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
+library(tidyverse)
 library(bslib)
 library(rnaturalearth)
+library(rnaturalearthdata)
 library(sf)
 
 # OHW directory  -------------------------------------------------------------
-base_dir <- "/scratch/nf33/la6889/fishmip" # directory for OHW datasets
+base_dir <- "example_data/" # directory for OHW datasets
 
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
@@ -34,8 +32,8 @@ maps_dir <- file.path(base_dir, "maps_data")
 ts_dir <- file.path(base_dir, "ts_data")
 
 # Getting list of all files within folder
-var_files <- list.files(maps_dir) #|> 
-  # str_subset("chl", negate = T)
+var_files <- list.files(maps_dir) 
+
 # Getting names of environmental variables available
 varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*", 
                         group = 1) |> 
@@ -186,18 +184,18 @@ ui <- fluidPage(
 
 # Define actions ----------------------------------------------------------
 server <- function(input, output, session) {
-  #Selecting correct file based on inputs from region and env variable selected
+  # Selecting correct file based on inputs from region and env variable selected
   region_fishmip <- reactive({
-    #Get region selected
+    # Get region selected
     name_reg <- input$region_gfdl |> 
       #Change to all lowercase
       str_to_lower() |> 
       #Replaces spaces " " with dashes "-" to identify correct files
       str_replace_all(" ", "-") |> 
       str_replace("'", "")
-    #Get env variable selected
+    # Get env variable selected
     name_var <- input$variable_gfdl
-    #Merge region and variable prior to identifying correct file
+    # Merge region and variable prior to identifying correct file
     sub <- str_c(name_var, "_15arcmin_", name_reg)
     #Identifying correct file
     file_path <- str_subset(var_files, sub)
