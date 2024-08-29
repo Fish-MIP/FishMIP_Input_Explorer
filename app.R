@@ -65,13 +65,12 @@ scaler <- function(x, type, ratio = F){
 
 prettyplot_theme <- theme_classic() +
   theme(text = element_text(colour = "black", size = 15),
-        legend.position = "bottom", legend.key.width = unit(4, "cm"),
-        plot.title = element_text(size = 18, hjust = 0.5), 
-        axis.text.y = element_text(size = 13, hjust = 0.5, vjust = 0.5), #angle = 45
-        axis.text.x = element_text(size = 13, hjust = 0.5, vjust = 0.5),
-        # axis.title = element_blank(), 
-        legend.text = element_text(size = 13)#, 
-        # legend.title = element_text(size = 15)
+        axis.line = element_line(linewidth = 0.5, colour = "black"),
+        legend.position = "bottom", 
+        legend.key.width = unit(3.5, "cm"),
+        plot.title = element_text(size = 18, hjust = 0.5),
+        axis.text.y = element_text(hjust = 0.5, vjust = 0.5), 
+        axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5),
         )
 
 prettymap_guide <- guide_colorbar(
@@ -479,23 +478,27 @@ server <- function(input, output, session) {
       maxx <- max(df$lon)
       rangex <- abs(abs(maxx)-abs(minx))
     }
-    # Apply scaler function
-    if(rangex >= 1.15*rangey){
-      ylims <- c(scaler(miny, "min"),
-                 scaler(maxy, "max"))
-      xlims <- c(scaler(minx, "min", ratio = T),
-                 scaler(maxx, "max", ratio = T))
-    }else if(rangey >= 1.15*rangex){
-      xlims <- c(scaler(minx, "min"),
-                 scaler(maxx, "max"))
-      ylims <- c(scaler(miny, "min", ratio = T),
-                 scaler(maxy, "max", ratio = T))
-    }else{
-      xlims <- c(scaler(minx, "min"),
-                 scaler(maxx, "max"))
-      ylims <- c(scaler(miny, "min"),
-                 scaler(maxy, "max"))
-    }
+    
+    xlims <- c(minx, maxx)
+    ylims <- c(miny, maxy)
+    
+    # # Apply scaler function
+    # if(rangex >= 1.15*rangey){
+    #   ylims <- c(scaler(miny, "min"),
+    #              scaler(maxy, "max"))
+    #   xlims <- c(scaler(minx, "min", ratio = T),
+    #              scaler(maxx, "max", ratio = T))
+    # }else if(rangey >= 1.15*rangex){
+    #   xlims <- c(scaler(minx, "min"),
+    #              scaler(maxx, "max"))
+    #   ylims <- c(scaler(miny, "min", ratio = T),
+    #              scaler(maxy, "max", ratio = T))
+    # }else{
+    #   xlims <- c(scaler(minx, "min"),
+    #              scaler(maxx, "max"))
+    #   ylims <- c(scaler(miny, "min"),
+    #              scaler(maxy, "max"))
+    # }
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = value)) +
@@ -628,23 +631,27 @@ server <- function(input, output, session) {
       maxx <- max(df$lon)
       rangex <- abs(abs(maxx)-abs(minx))
     }
-    # Apply scaler function
-    if(rangex >= 1.15*rangey){
-      ylims <- c(scaler(miny, "min"),
-                 scaler(maxy, "max"))
-      xlims <- c(scaler(minx, "min", ratio = T),
-                 scaler(maxx, "max", ratio = T))
-    }else if(rangey >= 1.15*rangex){
-      xlims <- c(scaler(minx, "min"),
-                 scaler(maxx, "max"))
-      ylims <- c(scaler(miny, "min", ratio = T),
-                 scaler(maxy, "max", ratio = T))
-    }else{
-      xlims <- c(scaler(minx, "min"),
-                 scaler(maxx, "max"))
-      ylims <- c(scaler(miny, "min"),
-                 scaler(maxy, "max"))
-    }
+    
+    xlims <- c(minx, maxx)
+    ylims <- c(miny, maxy)
+    
+    # # Apply scaler function
+    # if(rangex >= 1.15*rangey){
+    #   ylims <- c(scaler(miny, "min"),
+    #              scaler(maxy, "max"))
+    #   xlims <- c(scaler(minx, "min", ratio = T),
+    #              scaler(maxx, "max", ratio = T))
+    # }else if(rangey >= 1.15*rangex){
+    #   xlims <- c(scaler(minx, "min"),
+    #              scaler(maxx, "max"))
+    #   ylims <- c(scaler(miny, "min", ratio = T),
+    #              scaler(maxy, "max", ratio = T))
+    # }else{
+    #   xlims <- c(scaler(minx, "min"),
+    #              scaler(maxx, "max"))
+    #   ylims <- c(scaler(miny, "min"),
+    #              scaler(maxy, "max"))
+    # }
 
     p <- ggplot(df, aes(x = lon, y = lat, fill = percent_diff)) +
       geom_tile() +
