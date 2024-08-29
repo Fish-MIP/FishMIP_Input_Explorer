@@ -1,4 +1,5 @@
 # Loading libraries -------------------------------------------------------
+library(arrow)
 library(shiny)
 library(shinyWidgets)
 library(readr)
@@ -7,9 +8,9 @@ library(bslib)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
-library(arrow)
 library(plotly)
 options(scipen = 99)
+
 
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
@@ -22,7 +23,7 @@ var_keys <- read_csv(file.path(masks_dir, "WOA_variables_keys.csv"))
 
 # First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
-# base_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
+# fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
 #                       "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
 fishmip_dir <- "/scratch/nf33/la6889/fishmip" # directory for OHW datasets
 download_dir <- file.path(fishmip_dir, "download_data")
@@ -39,6 +40,10 @@ varNames <- str_extract(MOM_map_files,
                         ".*obsclim_(.*)_[0-9]{2}arc.*", 
                         group = 1) |> 
   unique()
+varNames <- data.frame(varNames = varNames) %>% 
+  mutate(nicenames = NA)
+varNames$nicenames <- case_when(varNames$varNames %in% var_keys$MOM_code ~ var_keys$key_name[var_keys$MOM_code == varNames$varNames],
+                                TRUE ~ NA)
 
 world <- ne_countries(returnclass = "sf", scale = "medium")
 
@@ -57,13 +62,20 @@ scaler <- function(x, type, ratio = F){
 }
 
 prettyplot_theme <- theme_classic() +
-  theme(legend.position = "bottom", legend.key.width = unit(4, "cm"),
-        plot.title = element_text(size = 15, hjust = 0.5), 
-        axis.text.y = element_text(size = 15, angle = 45, hjust = 0.5, vjust = 0.5),
-        axis.text.x = element_text(size = 15, angle = 45, hjust = 0.5, vjust = 0.5),
+  theme(text = element_text(colour = "black", size = 15),
+        legend.position = "bottom", legend.key.width = unit(4, "cm"),
+        plot.title = element_text(size = 18, hjust = 0.5), 
+        axis.text.y = element_text(size = 13, hjust = 0.5, vjust = 0.5), #angle = 45
+        axis.text.x = element_text(size = 13, hjust = 0.5, vjust = 0.5),
         # axis.title = element_blank(), 
-        legend.text = element_text(size = 15), 
-        legend.title = element_text(size = 15))
+        legend.text = element_text(size = 13)#, 
+        # legend.title = element_text(size = 15)
+        )
+
+prettymap_guide <- guide_colorbar(
+  ticks.linewidth = 0.75,
+  frame.colour = "blue", 
+  title.vjust = 0.75)
 
 # Data files  ------------------------------------------------------------------
 WOA_files <- list.files(file.path("example_data", "WOA_data"), full.names = T) %>% 
@@ -82,14 +94,18 @@ get_WOA_filename <- function(reg_nicename, var_nicename) {
     str_subset(var_filename)
 } # Gives a single filename
 
-get_MOM_filename <- function(reg_nicename, var_nicename) {
+get_MOM_filename <- function(reg_nicename, var_nicename = NA, var_MOM_code = NA) {
   reg_filename <- reg_nicename %>% 
     str_replace_all(" ", "-") %>% # Replace spaces with underscores
     str_replace_all("i'i", "ii") %>% # Replace Hawai'i with Hawaii
     str_to_lower()
   
-  var_filename <- var_keys$MOM_code[var_keys$key_name == var_nicename]
-  
+  if (is.na(var_nicename)) {
+    var_filename <- var_MOM_code
+  } else {
+    var_filename <- var_keys$MOM_code[var_keys$key_name == var_nicename]
+  }
+
   return(list(
     map = MOM_map_files %>% 
       str_subset(reg_filename) %>% str_subset(var_filename),
@@ -115,8 +131,6 @@ ui <- fluidPage(
       tabPanel("Model outputs",
                sidebarLayout(
                  sidebarPanel(
-                   p("The plots to the right visualise the outputs of the GFDL-MOM6-COBALT2 model."),
-                   
                    h4(strong("Instructions:")),
                    
                    # Choose region of interest
@@ -127,7 +141,7 @@ ui <- fluidPage(
                    # Choose variable of interest
                    p("2. Choose an environmental variable to visualise."),
                    selectInput(inputId = "variable_MOM",label = NULL,
-                               choices = varNames, selected = "tos"),
+                               choices = varNames$nicenames, selected = "Temperature"),
                    
                    p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the 
                      climatological mean (1961-2010) for the variable of your choice within your region of interest"),
@@ -259,54 +273,47 @@ ui <- fluidPage(
 
 # Define actions ---------------------------------------------------------------
 server <- function(input, output, session) {
+  #bs_themer()
 ## Model tab -------------------------------------------------------------------
-  
-#bs_themer()
-  
   # Selecting correct file based on inputs from region and env variable selected
   select_model_file <- reactive({
     get_MOM_filename(reg_nicename = input$region_MOM, 
+                     # var_MOM_code = input$variable_MOM,
                      var_nicename = input$variable_MOM)
   })
   
   # Loading dataset
-  var_fishmip <- reactive({
+  MOM_data <- reactive({
     map_df <- read_csv(select_model_file()$map, col_select = c('lon', 'lat', 'vals', "units")) #|> 
-    unit <- unique(map_df$units)
-
-    var_keys$MOM_code == input$variable_MOM
-    # Getting standard name from dataset
-    if("standard_name" %in% names(map_df)){
-      std_name <- df |> 
-        distinct(standard_name) 
-    }else{
-      std_name <- df |> 
-        distinct(long_name) 
-    }
-    std_name <- std_name |> 
-        drop_na() |>
-        pull() |> 
-        str_replace_all("_", " ") 
-    
-    std_name <- paste("Mean", std_name, sep = " ") |>
-        str_to_sentence()
-    
-    #Creating label for figures
-    cb_lab <- paste0(input$variable_MOM, " (", unit, ")")
-    
-    #Get full file path to relevant file
     ts_df <- read_csv(select_model_file()$ts, col_select = c('date', 'vals'))
     
-    #Return data frame
-    return(list(map_data = map_df,
-                ts_data = ts_df,
-                std_name = std_name,
-                fig_label = cb_lab))
+    # Get nice units
+    unit <- unique(map_df$units)
+    # vname <- var_keys$key_name[var_keys$MOM_code == input$variable_MOM]
+
+    title <- paste0("Mean ", input$variable_MOM) %>% 
+        str_to_sentence()
+    map_title <- paste0(title, " from GFDL-MOM6-COBALT2 model (1961-2010)")
+    ts_title <- paste0(title, " from GFDL-MOM6-COBALT2 model, ", input$region_MOM, " region")
+    
+    if (unit == 'degC' | input$variable_MOM == "Temperature") {
+      cb_lab <- expression("Temperature ("*degree*"C)")
+    } else {
+      cb_lab <- paste0(input$variable_MOM, " (", unit, ")")
+    }
+    
+    return(list(
+      map_data = map_df,
+      map_title = map_title, 
+      ts_data = ts_df,
+      ts_title = ts_title, 
+      cb_lab = cb_lab
+    ))
   })
   
   # Creating first plot
   output$map_MOM <- renderPlot({
-    df <- var_fishmip()$map_data
+    df <- MOM_data()$map_data
     
     # Adjusting map proportions
     minx <- min(df$lon)
@@ -326,6 +333,7 @@ server <- function(input, output, session) {
       maxx <- max(df$lon)
       rangex <- abs(abs(maxx)-abs(minx))
     }
+    
     # Apply scaler function
     if(rangex >= 1.15*rangey){
       ylims <- c(scaler(miny, "min"),
@@ -345,52 +353,55 @@ server <- function(input, output, session) {
     }
     
     # Plotting map
-    df |> 
-      ggplot(aes(x = lon, y = lat, fill = vals)) +
-      geom_tile()+
-      coord_cartesian()+
-      scale_fill_viridis_c(guide = guide_colorbar(ticks.linewidth = 0.75,
-                                                  frame.colour = "blue", 
-                                                  title.vjust = 0.75),
-                           na.value = NA) +
-      geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F)+
-      guides(fill = guide_colorbar(title = var_fishmip()$fig_label, 
-                                   title.position = "top", title.hjust = 0.5))+
-      labs(title = var_fishmip()$std_name)+
+    ggplot(df, aes(x = lon, y = lat, fill = vals)) +
+      geom_tile() +
       prettyplot_theme +
-      coord_sf(xlims, ylims)
-  }, height = 500, width = 1000)
+      coord_cartesian() +
+      scale_fill_viridis_c(guide = prettymap_guide, na.value = NA) +
+      geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F)+
+      coord_sf(xlims, ylims) +
+      guides(fill = guide_colorbar(title = MOM_data()$cb_lab, title.position = "top", title.hjust = 0.5))+
+      labs(title = MOM_data()$map_title, x = "Longitude", y = "Latitude")
+  }, height = 500, width = 750)
 
   output$ts_MOM <- renderPlot({
-   #calculate spatially weighted average of variables selected
-   var_fishmip()$ts_data |>
-     #Plot weighted means
-     ggplot(aes(x = date, y = vals)) +
-     geom_line(aes(color = "area weighted mothly mean")) +
-     geom_smooth(aes(color = "linear temporal trend"))+
-     scale_color_manual(breaks = c("area weighted mothly mean", 
-                                   "linear temporal trend"), 
-                        values = c("#004488", "#bb5566"))+
-     scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months", 
-                  expand = expansion(0.02)) +
-     guides(color = guide_legend(title = element_blank())) +
-     labs(title = var_fishmip()$std_name,
-          y = var_fishmip()$fig_label)+
+    df <- MOM_data()$ts_data
+    
+    # Calculate spatially weighted average of variables selected
+
+    ggplot(df, aes(x = date, y = vals)) +
+      geom_line() +
+      # geom_line(aes(color = "area weighted mothly mean")) +
+      # geom_smooth(aes(color = "linear temporal trend")) +
+      # scale_color_manual(breaks = c("area weighted mothly mean", "linear temporal trend"), 
+      #                    values = c("#004488", "#bb5566"))+
+      scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months", expand = expansion(0.02)) +
+      guides(color = guide_legend(title = element_blank())) +
+      labs(title = MOM_data()$ts_title) +
       prettyplot_theme
-   }, height = 500, width = 1000)
+   }, height = 500, width = 750)
 
   # Loading download dataset
-  down_fishmip <- reactive({
-     # Get full file path to relevant file
-     down_file <- file.path(download_dir, select_model_file())
-     # Load file
-     down_df <- read_csv(down_file)
+  MOM_down_data <- reactive({
+    filestring <- str_split(select_model_file()$map, "/")
+    filestring <- filestring[[1]][length(filestring[[1]])]
+    
+    # Get full file path to relevant file
+    down_file <- file.path(download_dir, filestring)
+    
+    # Load file
+    down_df <- read_csv(down_file)
+    return(list(
+      filestring = filestring,
+      down_file = down_file
+    ))
    })
    
   output$download_data <- downloadHandler(
-    filename = function(){select_model_file()},
+    filename = function(){MOM_down_data()$filestring},
     # Creating name of download file based on original file name
-    content = function(file){write_csv(down_fishmip(), file)})
+    content = function(file){write_csv(MOM_down_data()$down_file, file)}
+    )
   
 ## Observations tab ------------------------------------------------------------
   
@@ -517,7 +528,7 @@ server <- function(input, output, session) {
     fname_MOM <- get_MOM_filename(reg_nicename = input$region_compare, 
                                   var_nicename = input$variable_compare) 
     
-    df_WOA <- read_parquet(fname_WOA)
+    df_WOA <- read_parquet(fname_WOA) %>% drop_na()
     map_MOM <- read_csv(fname_MOM$map, col_select = c('lat', 'lon', 'vals'))
     ts_MOM <- read_csv(fname_MOM$ts, col_select = c('date', 'vals'))
     
@@ -553,14 +564,16 @@ server <- function(input, output, session) {
       
     ts_MOM <- select_compare_file()$ts_MOM %>% 
       mutate(value = vals,
-             source = "MOM5 model output") %>% 
-      select(-vals)
+             month = month(date)) %>% 
+      group_by(month) %>% 
+      reframe(value = mean(value)) %>% 
+      mutate(source = "MOM5 model output")
       
     ts_WOA <- select_compare_file()$df_WOA %>% 
       filter(!is.na(value)) %>% 
-      mutate(date = as.Date(time)) %>% 
-      select(-depth, -variable, -time) %>% 
-      group_by(date) %>% 
+      mutate(date = as.Date(time),
+             month = month(date)) %>% 
+      group_by(month) %>% 
       reframe(value = mean(value)) %>% 
       mutate(source = "WOA observations")
     
@@ -643,15 +656,15 @@ server <- function(input, output, session) {
   
   output$ts_compare <- renderPlot({
     df <- select_compare_data()$ts_compare %>% 
-      mutate(as.factor(source))
+      mutate(source = as.factor(source))
       
-    ggplot(df, aes(x = date, y = value, colour = as.factor(source))) +
+    ggplot(df, aes(x = month, y = value, colour = source)) +
       geom_line() +
       prettyplot_theme +
-      facet_grid(rows = var(source)) #+
-      # ggtitle(label = ts_compare_data()$title) +
-      # labs(x = ts_compare_data()$xlab, y = ts_compare_data()$ylab)
-  }, height = 500, width = 1000)
+      scale_x_continuous(breaks = 1:12, labels = month.abb) +
+      ggtitle(label = select_compare_data()$ts_title) +
+      labs(x = select_compare_data()$ts_xlab, y = select_compare_data()$ts_ylab)
+  }, height = 500, width = 750)
   
   # output$download_compare <- downloadHandler(
   #   filename = function(){
