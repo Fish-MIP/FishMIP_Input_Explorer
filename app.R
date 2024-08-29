@@ -12,15 +12,14 @@ library(plotly)
 library(lubridate)
 options(scipen = 99)
 
-
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
 # masks_dir <- "/rd/gem/private/shared_resources/FishMIPMasks"
 masks_dir <- "example_data"
 
 # Keys to interpret raster mask
-region_keys <- read_csv(file.path(masks_dir, "FishMIP_regions_keys.csv"))
-var_keys <- read_csv(file.path(masks_dir, "WOA_variables_keys.csv"))
+region_keys <- read_csv(file.path(masks_dir, "FishMIP_regions_keys.csv"), show_col_types = FALSE)
+var_keys <- read_csv(file.path(masks_dir, "WOA_variables_keys.csv"), show_col_types = FALSE)
 
 # First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
@@ -32,14 +31,14 @@ maps_dir <- file.path(fishmip_dir, "maps_data")
 ts_dir <- file.path(fishmip_dir, "ts_data")
 
 # Getting list of all files within folders
-MOM_map_files <- list.files(maps_dir, full.names = T) 
+MOM_map_files <- list.files(maps_dir, full.names = T)
 MOM_ts_files <- list.files(ts_dir, full.names = T) 
 MOM_download_files <- list.files(download_dir, full.names = T) 
 
 # Getting names of environmental variables available
 varNames <- str_extract(MOM_map_files, 
                         ".*obsclim_(.*)_[0-9]{2}arc.*", 
-                        group = 1) |> 
+                        group = 1) %>% 
   unique()
 varNames <- data.frame(varNames = varNames) %>% 
   mutate(nicenames = NA)
@@ -48,7 +47,7 @@ varNames$nicenames <- case_when(varNames$varNames %in% var_keys$MOM_code ~ var_k
 
 world <- ne_countries(returnclass = "sf", scale = "medium")
 lonlab <- "Longitude"
-latlab <- "Longitude"
+latlab <- "Latitude"
 
 # Function to improve map ratios for plotting
 scaler <- function(x, type, ratio = F){
@@ -228,13 +227,8 @@ ui <- fluidPage(
                    ),
                  mainPanel(
                    tabsetPanel(
-<<<<<<< HEAD
-                     tabPanel("Climatological map",
-                              mainPanel(plotlyOutput(outputId = "map_compare", width = "100%"))),
-=======
                      tabPanel("Climatological maps",
                               mainPanel(plotlyOutput(outputId = "map_compare", width = "140%"))),
->>>>>>> 4990a3007afc580d6998ca7091dd685dc4c63acb
                      tabPanel("Time series plot",
                               mainPanel(plotOutput(outputId = "ts_compare", width = "100%"))),
                      tags$head(tags$style(type="text/css", " #loadmessage {
@@ -302,8 +296,8 @@ server <- function(input, output, session) {
   
   # Loading dataset
   MOM_data <- reactive({
-    map_df <- read_csv(select_model_file()$map, col_select = c('lon', 'lat', 'vals', "units")) #|> 
-    ts_df <- read_csv(select_model_file()$ts, col_select = c('date', 'vals'))
+    map_df <- read_csv(select_model_file()$map, col_select = c('lon', 'lat', 'vals', "units"), show_col_types = FALSE)
+    ts_df <- read_csv(select_model_file()$ts, col_select = c('date', 'vals'), show_col_types = FALSE)
     
     # Get nice units
     unit <- unique(map_df$units)
@@ -408,7 +402,7 @@ server <- function(input, output, session) {
     down_file <- file.path(download_dir, filestring)
     
     # Load file
-    down_df <- read_csv(down_file)
+    down_df <- read_csv(down_file, show_col_types = FALSE)
     return(list(
       filestring = filestring,
       down_file = down_file
@@ -547,8 +541,8 @@ server <- function(input, output, session) {
                                   var_nicename = input$variable_compare) 
     
     df_WOA <- read_parquet(fname_WOA) %>% drop_na()
-    map_MOM <- read_csv(fname_MOM$map, col_select = c('lat', 'lon', 'vals'))
-    ts_MOM <- read_csv(fname_MOM$ts, col_select = c('date', 'vals'))
+    map_MOM <- read_csv(fname_MOM$map, col_select = c('lat', 'lon', 'vals'), show_col_types = FALSE)
+    ts_MOM <- read_csv(fname_MOM$ts, col_select = c('date', 'vals'), show_col_types = FALSE)
     
     # fname <- fname # change to combine them somehow
     return(list(
