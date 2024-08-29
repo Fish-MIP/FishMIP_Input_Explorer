@@ -117,12 +117,12 @@ get_MOM_filename <- function(reg_nicename, var_nicename = NA, var_MOM_code = NA)
 # Defining user interface ------------------------------------------------------
 ## Global UI -------------------------------------------------------------------
 ui <- fluidPage(
-  theme = bs_theme(bootswatch = "yeti"),
+  theme = bs_theme(bootswatch = "materia"),
   titlePanel(title = span(img(src = "FishMIP_logo.jpg", 
                               height = 100, width = 300, 
                               style = "display: block; margin-left: auto; margin-right:auto"),
                           h1("Regional Climate Forcing Data Explorer",
-                             style = "background-color:#f3f3f3; border:1.5px solid #c9d5ea; 
+                             style = "color: #095c9e; background-color:#f3f3f3; border:1.5px solid #c9d5ea; 
                             padding-left: 15px; padding-bottom: 10px; padding-top: 10px;
                             text-align: center; font-weight: bold")),
              windowTitle = "FishMIP Regional Climate Forcing Data Explorer"),
@@ -173,12 +173,12 @@ ui <- fluidPage(
                  h4(strong("Instructions:")),
                  
                  # Choose region of interest
-                 p("1. Select the region you would like to visualise."),
+                 p("1. Select a FishMIP model region:"),
                  selectInput(inputId = "region_WOA", label = NULL,
                              choices = region_keys$region, selected = "Central North Pacific"),
                  
                  # Choose variable of interest
-                 p("2. Choose an environmental variable to visualise."),
+                 p("2. Choose an environmental variable:"),
                  selectInput(inputId = "variable_WOA", label = NULL,
                              choices = var_keys$key_name, selected = "Temperature"),
                  p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the climatological 
@@ -211,12 +211,12 @@ ui <- fluidPage(
                  h4(strong("Instructions:")),
                  
                  # Choose region of interest
-                 p("1. Select the region you would like to visualise."),
+                 p("1. Select a FishMIP model region:"),
                  selectInput(inputId = "region_compare", label = NULL,
                              choices = region_keys$region, selected = "Central North Pacific"),
                  
                  # Choose variable of interest
-                 p("2. Choose an environmental variable to visualise."),
+                 p("2. Choose an environmental variable:"),
                  selectInput(inputId = "variable_compare", label = NULL,
                              choices = var_keys$key_name,  selected = "Temperature"),
                  p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the differeces 
@@ -224,8 +224,7 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), " tab to see the difference in monthly means between
                  the model output (1961-2010) and observations (1981-2010) in the whole area."),
                  
-                 p(em("Optional: "), "Get a copy"),
-                 
+                 p(em("Optional: "), "Get a copy of the data used to create these plots by clicking the 'Download' button below."),
                  # Download option
                  downloadButton(outputId = "download_data_compare", label = "Download")
                ),
@@ -293,7 +292,7 @@ ui <- fluidPage(
 
 # Define actions ---------------------------------------------------------------
 server <- function(input, output, session) {
-  #bs_themer()
+  # bs_themer()
   ## Model tab -------------------------------------------------------------------
   # Selecting correct file based on inputs from region and env variable selected
   select_model_file <- reactive({
