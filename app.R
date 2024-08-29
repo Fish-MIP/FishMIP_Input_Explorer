@@ -11,21 +11,21 @@ library(arrow)
 
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
-# fishmip_masks <- "/rd/gem/private/shared_resources/FishMIPMasks"
-fishmip_masks <- "example_data/"
+# masks_dir <- "/rd/gem/private/shared_resources/FishMIPMasks"
+masks_dir <- "example_data"
 
 # Keys to interpret raster mask
-keys <- read_csv(list.files(fishmip_masks, "FishMIP_regions_keys.csv", full.names = T))
-varkeys <- read_csv(list.files(fishmip_masks, "WOA_variables_keys.csv", full.names = T))
-base_dir <- "example_data/" # directory for OHW datasets
+region_keys <- read_csv(file.path(masks_dir, "FishMIP_regions_keys.csv"))
+var_keys <- read_csv(file.path(masks_dir, "WOA_variables_keys.csv"))
 
 # First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
 # base_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
 #                       "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
-download_dir <- paste0(base_dir, "download_data")
-maps_dir <- paste0(base_dir, "maps_data")
-ts_dir <- paste0(base_dir, "ts_data")
+fishmip_dir <- "/scratch/nf33/la6889/fishmip" # directory for OHW datasets
+download_dir <- file.path(fishmip_dir, "download_data")
+maps_dir <- file.path(fishmip_dir, "maps_data")
+ts_dir <- file.path(fishmip_dir, "ts_data")
 
 # Getting list of all files within folder
 var_files <- list.files(maps_dir) 
@@ -61,7 +61,7 @@ prettyplot_theme <- theme_classic() +
         legend.title = element_text(size = 15))
 
 # OHW data  ---------------------------------------------------------------
-WOA_files <- list.files(str_c(base_dir, "WOA_data"), full.names = T) %>% 
+WOA_files <- list.files(file.path("example_data", "WOA_data"), full.names = T) %>% 
   str_subset(pattern = ".parquet")
 
 # Helper function to get correct parquet filename from the selected region
@@ -70,19 +70,20 @@ get_WOA_filename <- function(reg_nicename, var_nicename) {
     str_replace_all(" ", "_") %>% # Replace spaces with underscores
     str_replace_all("i'i", "ii") # Replace Hawai'i with Hawaii
   
-  var_filename <- varkeys$key_name[varkeys$variable == var_nicename]
+  var_filename <- var_keys$key_name[var_keys$variable == var_nicename]
   
   WOA_files %>% 
     str_subset(reg_filename) %>% 
     str_subset(var_filename)
-}
+} # Gives a single filename
+
 get_MOM_filename <- function(reg_nicename, var_nicename) {
   reg_filename <- reg_nicename %>% 
     str_replace_all(" ", "-") %>% # Replace spaces with underscores
     str_replace_all("i'i", "ii") %>% # Replace Hawai'i with Hawaii
     str_to_lower()
   
-  var_filename <- varkeys$key_name[varkeys$variable == var_nicename]
+  var_filename <- var_keys$key_name[var_keys$variable == var_nicename]
   
   obs_files <- list.files(c(maps_dir, ts_dir), full.names = T) %>% 
     str_subset(reg_filename) %>% 
@@ -118,7 +119,7 @@ ui <- fluidPage(
                    # Choose region of interest
                    p("1. Select the FishMIP regional model you would like to visualise."),
                    selectInput(inputId = "region_MOM", label = NULL,
-                               choices = keys$region, selected = "Brazil NE"),
+                               choices = region_keys$region, selected = "Brazil NE"),
                    
                    # Choose variable of interest
                    p("2. Choose an environmental variable to visualise."),
@@ -155,12 +156,12 @@ ui <- fluidPage(
                    # Choose region of interest
                    p("1. Select the region you would like to visualise."),
                    selectInput(inputId = "region_WOA", label = NULL,
-                               choices = keys$region, selected = "Brazil NE"),
+                               choices = region_keys$region, selected = "Brazil NE"),
                    
                    # Choose variable of interest
                    p("2. Choose an environmental variable to visualise."),
                    selectInput(inputId = "variable_WOA", label = NULL,
-                               choices = varkeys$variable, selected = "Salinity"),
+                               choices = var_keys$key_name, selected = "Salinity"),
                    p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the climatological 
                      mean (1981-2010) for observations of the variable of your choice within your region of interest"),
                    p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area-weighted 
@@ -189,12 +190,12 @@ ui <- fluidPage(
                    # Choose region of interest
                    p("1. Select region"),
                    selectInput(inputId = "region_compare", label = NULL,
-                               choices = keys$region, selected = "Brazil NE"),
+                               choices = region_keys$region, selected = "Brazil NE"),
 
                    # Choose variable of interest
                    p("2. Choose variable"),
                    selectInput(inputId = "variable_compare", label = NULL,
-                               choices = varkeys$variable,  selected = "Salinity"),
+                               choices = var_keys$key_name,  selected = "Salinity"),
                    p("3a. Click on the ", strong('Climatological maps'), " tab "),
                    p("3b. Click on the ", strong('Time series plot'), " tab "),
                    p(em("Optional: "), "Get a copy"),
@@ -414,27 +415,23 @@ server <- function(input, output, session) {
   select_WOA_file <- reactive({
     fname <- get_WOA_filename(reg_nicename = input$region_WOA, 
                               var_nicename = input$variable_WOA)
-    return(
-      list(fname = fname, 
-           df = read_parquet(fname)))
+    return(fname)
     })
   
   # Read WOA data from file, surface only
   map_WOA_data <- reactive({
-    df <- select_WOA_file()$df %>%
+    df <- read_parquet(select_WOA_file()) %>%
       filter(!is.na(value)) %>% 
       select(-depth, -variable) %>% 
       group_by(lat, lon) %>% 
       reframe(value = mean(value))
-    xlab <- "Map WOA xlabel"
-    ylab <- "Map WOA ylabel"
-    title <- "Map WOA title"
+    
     return(list(
       df = df, 
-      title = title, 
+      title = "Map WOA title", 
       figlabel = "Map WOA legend label",
-      xlab = xlab, 
-      ylab = ylab
+      xlab = "Map WOA xlabel", 
+      ylab = "Map WOA ylabel"
     ))
   })
 
@@ -460,41 +457,41 @@ server <- function(input, output, session) {
   output$map_WOA <- renderPlot({
     df <- map_WOA_data()$df
     
-    # Adjusting map proportions
-    minx <- min(df$lon)
-    maxx <- max(df$lon)
-    miny <- min(df$lat)
-    maxy <- max(df$lat)
-    
-    # Calculate range
-    rangex <- abs(abs(maxx)-abs(minx))
-    rangey <- abs(abs(maxy)-abs(miny))
-    
-    # Check if map crosses international date line
-    if(rangex == 0 & str_detect(input$region_WOA, "Southern Ocean", negate = T)){
-      df <- df |>
-        mutate(lon = lon%%360)
-      minx <- min(df$lon)
-      maxx <- max(df$lon)
-      rangex <- abs(abs(maxx)-abs(minx))
-    }
-    # Apply scaler function
-    if(rangex >= 1.15*rangey){
-      ylims <- c(scaler(miny, "min"),
-                 scaler(maxy, "max"))
-      xlims <- c(scaler(minx, "min", ratio = T),
-                 scaler(maxx, "max", ratio = T))
-    }else if(rangey >= 1.15*rangex){
-      xlims <- c(scaler(minx, "min"),
-                 scaler(maxx, "max"))
-      ylims <- c(scaler(miny, "min", ratio = T),
-                 scaler(maxy, "max", ratio = T))
-    }else{
-      xlims <- c(scaler(minx, "min"),
-                 scaler(maxx, "max"))
-      ylims <- c(scaler(miny, "min"),
-                 scaler(maxy, "max"))
-    }
+    # # Adjusting map proportions
+    # minx <- min(df$lon)
+    # maxx <- max(df$lon)
+    # miny <- min(df$lat)
+    # maxy <- max(df$lat)
+    # 
+    # # Calculate range
+    # rangex <- abs(abs(maxx)-abs(minx))
+    # rangey <- abs(abs(maxy)-abs(miny))
+    # 
+    # # Check if map crosses international date line
+    # if(rangex == 0 & str_detect(input$region_WOA, "Southern Ocean", negate = T)){
+    #   df <- df |>
+    #     mutate(lon = lon%%360)
+    #   minx <- min(df$lon)
+    #   maxx <- max(df$lon)
+    #   rangex <- abs(abs(maxx)-abs(minx))
+    # }
+    # # Apply scaler function
+    # if(rangex >= 1.15*rangey){
+    #   ylims <- c(scaler(miny, "min"),
+    #              scaler(maxy, "max"))
+    #   xlims <- c(scaler(minx, "min", ratio = T),
+    #              scaler(maxx, "max", ratio = T))
+    # }else if(rangey >= 1.15*rangex){
+    #   xlims <- c(scaler(minx, "min"),
+    #              scaler(maxx, "max"))
+    #   ylims <- c(scaler(miny, "min", ratio = T),
+    #              scaler(maxy, "max", ratio = T))
+    # }else{
+    #   xlims <- c(scaler(minx, "min"),
+    #              scaler(maxx, "max"))
+    #   ylims <- c(scaler(miny, "min"),
+    #              scaler(maxy, "max"))
+    # }
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = value)) +
