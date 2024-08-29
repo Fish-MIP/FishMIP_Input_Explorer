@@ -65,7 +65,6 @@ scaler <- function(x, type, ratio = F){
 
 prettyplot_theme <- theme_classic() +
   theme(text = element_text(colour = "black", size = 15),
-        axis.line = element_line(linewidth = 0.5, colour = "black"),
         legend.position = "bottom", 
         legend.key.width = unit(3.5, "cm"),
         plot.title = element_text(size = 18, hjust = 0.5),
@@ -220,10 +219,10 @@ ui <- fluidPage(
                  p("2. Choose an environmental variable to visualise."),
                  selectInput(inputId = "variable_compare", label = NULL,
                              choices = var_keys$key_name,  selected = "Temperature"),
-                 p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the climatological 
-                     mean (1981-2010) of observations."),
-                 p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area-weighted 
-                     monthly mean of observations."),
+                 p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the differeces 
+                 between the climatological mean in the model output (1961-2010) and observations (1981-2010)."),
+                 p("3b. Click on the ", strong('Time series plot'), " tab to see the difference in monthly means between
+                 the model output (1961-2010) and observations (1981-2010) in the whole area."),
                  
                  p(em("Optional: "), "Get a copy"),
                  
@@ -572,7 +571,6 @@ server <- function(input, output, session) {
                   values_from = value) %>% 
       mutate(percent_diff = round((( `MOM5 model output` - `WOA observations`) / `WOA observations`) * 100, 2))
     
-    
     ts_MOM <- select_compare_file()$ts_MOM %>% 
       mutate(value = vals,
              month = month(date)) %>% 
@@ -588,19 +586,27 @@ server <- function(input, output, session) {
       reframe(value = mean(value)) %>% 
       mutate(source = "WOA observations")
     
-    ts_compare = rbind(ts_MOM, ts_WOA)
+    ts_compare = rbind(ts_MOM, ts_WOA) %>% 
+      pivot_wider(names_from = source, 
+                  values_from = value) %>% 
+      mutate(percent_diff = round((( `MOM5 model output` - `WOA observations`) / `WOA observations`) * 100, 2))
     
+    ylab <- paste0("% difference in ",input$variable_compare)
+    title <- paste0("Difference in ", input$variable_compare) %>% 
+      str_to_sentence()
+    title <- paste0(title, " between model outputs (MOM5) \n and observations (WOA), ", input$region_compare, " region")
+
     return(list(
       map_compare = map_compare, 
-      map_title = "Compare map title",
-      map_figlabel = "Compare map figlabel",
+      map_title = title,
+      map_figlabel = ylab,
       map_xlab = lonlab,
       map_ylab = latlab,
       ts_compare = ts_compare,
-      ts_title = "Compare ts title",
-      ts_figlabel = "Compare ts figlabel",
-      ts_xlab = "Compare ts xlab",
-      ts_ylab = "Compare ts ylab"
+      ts_title = title,
+      ts_figlabel = NA,
+      ts_xlab = "Month",
+      ts_ylab = ylab
     ))
   })
   
@@ -631,24 +637,6 @@ server <- function(input, output, session) {
     xlims <- c(minx, maxx)
     ylims <- c(miny, maxy)
     
-    # # Apply scaler function
-    # if(rangex >= 1.15*rangey){
-    #   ylims <- c(scaler(miny, "min"),
-    #              scaler(maxy, "max"))
-    #   xlims <- c(scaler(minx, "min", ratio = T),
-    #              scaler(maxx, "max", ratio = T))
-    # }else if(rangey >= 1.15*rangex){
-    #   xlims <- c(scaler(minx, "min"),
-    #              scaler(maxx, "max"))
-    #   ylims <- c(scaler(miny, "min", ratio = T),
-    #              scaler(maxy, "max", ratio = T))
-    # }else{
-    #   xlims <- c(scaler(minx, "min"),
-    #              scaler(maxx, "max"))
-    #   ylims <- c(scaler(miny, "min"),
-    #              scaler(maxy, "max"))
-    # }
-    
     p <- ggplot(df, aes(x = lon, y = lat, fill = percent_diff)) +
       geom_tile() +
       coord_cartesian() +
@@ -658,25 +646,32 @@ server <- function(input, output, session) {
       guides(fill = guide_colorbar(title = select_compare_data()$map_figlabel, 
                                    title.position = "top", title.hjust = 0.5)) +
       coord_sf(xlims, ylims) +
-      #prettyplot_theme +
-      theme_minimal() +
+      # theme_minimal() +
+      # prettyplot_theme +
       labs(title = select_compare_data()$map_title,
            x = select_compare_data()$map_xlab,
            y = select_compare_data()$map_ylab) +
-      theme(legend.key.size = unit(0.2, "cm"),    # Decrease size of legend keys
-            legend.text = element_text(size = 5),
+      theme(legend.key.size = unit(0.5, "cm"),    # Decrease size of legend keys
+            legend.text = element_text(size = 8),
             panel.border = element_blank(),
             panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank())
+            panel.grid.minor = element_blank()) +
+      theme_classic() +
+      theme(text = element_text(colour = "black", size = 8),
+            # legend.position = "bottom", 
+            # legend.key.width = unit(3.5, "cm"),
+            plot.title = element_text(size = 13, hjust = 0.5),
+            axis.text.y = element_text(hjust = 0.5, vjust = 0.5), 
+            axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5),
+      )
     ggplotly(p)
     
   })
   
   output$ts_compare <- renderPlot({
-    df <- select_compare_data()$ts_compare %>% 
-      mutate(source = as.factor(source))
+    df <- select_compare_data()$ts_compare
     
-    ggplot(df, aes(x = month, y = value, colour = source)) +
+    ggplot(df, aes(x = month, y = percent_diff)) +
       geom_line() +
       prettyplot_theme +
       scale_x_continuous(breaks = 1:12, labels = month.abb) +
