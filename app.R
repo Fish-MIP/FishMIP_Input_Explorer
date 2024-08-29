@@ -47,6 +47,8 @@ varNames$nicenames <- case_when(varNames$varNames %in% var_keys$MOM_code ~ var_k
                                 TRUE ~ NA)
 
 world <- ne_countries(returnclass = "sf", scale = "medium")
+lonlab <- "Longitude"
+latlab <- "Longitude"
 
 # Function to improve map ratios for plotting
 scaler <- function(x, type, ratio = F){
@@ -425,8 +427,8 @@ server <- function(input, output, session) {
       df = df, 
       title = "Map WOA title", 
       figlabel = "Map WOA legend label",
-      xlab = "Map WOA xlabel", 
-      ylab = "Map WOA ylabel"
+      xlab = lonlab, 
+      ylab = latlab
     ))
   })
 
@@ -442,8 +444,8 @@ server <- function(input, output, session) {
       df = df, 
       title = "TS WOA title", 
       figlabel = "Map WOA legend label",
-      xlab = "TS WOA Xlabel", 
-      ylab = "TS WOA ylabel"
+      xlab = lonlab, 
+      ylab = latlab
     ))
   })
   
@@ -584,8 +586,8 @@ server <- function(input, output, session) {
       map_compare = map_compare, 
       map_title = "Compare map title",
       map_figlabel = "Compare map figlabel",
-      map_xlab = "Compare map xlab",
-      map_ylab = "Compare map ylab",
+      map_xlab = lonlab,
+      map_ylab = latlab,
       ts_compare = ts_compare,
       ts_title = "Compare ts title",
       ts_figlabel = "Compare ts figlabel",
