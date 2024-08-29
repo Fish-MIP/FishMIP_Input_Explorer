@@ -650,7 +650,10 @@ server <- function(input, output, session) {
            x = select_compare_data()$map_xlab,
            y = select_compare_data()$map_ylab) +
       theme(legend.key.size = unit(0.2, "cm"),    # Decrease size of legend keys
-            legend.text = element_text(size = 5))
+            legend.text = element_text(size = 5),
+            panel.border = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
     ggplotly(p)
     
   })
