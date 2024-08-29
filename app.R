@@ -262,37 +262,19 @@ server <- function(input, output, session) {
 #bs_themer()
   
   # Selecting correct file based on inputs from region and env variable selected
-  region_fishmip <- reactive({
-    # Get region selected
-    name_reg <- input$region_MOM |> 
-      #Change to all lowercase
-      str_to_lower() |> 
-      #Replaces spaces " " with dashes "-" to identify correct files
-      str_replace_all(" ", "-") |> 
-      str_replace("'", "")
-    # Get env variable selected
-    name_var <- input$variable_MOM
-    # Merge region and variable prior to identifying correct file
-    sub <- str_c(name_var, "_15arcmin_", name_reg)
-    #Identifying correct file
-    file_path <- str_subset(var_files, sub)
-    return(file_path)
+  select_model_file <- reactive({
+    get_MOM_filename(reg_nicename = input$region_MOM, 
+                     var_nicename = input$variable_MOM)
   })
   
   # Loading dataset
   var_fishmip <- reactive({
-    #Get full file path to relevant file
-    map_file <- file.path(maps_dir, region_fishmip())
-    #Load file
-    df <- read_csv(map_file) |> 
-      drop_na(vals)
-    #Getting units from dataset
-    unit <- df |> 
-      distinct(units) |> 
-      drop_na() |> 
-      pull()
-    #Getting standard name from dataset
-    if("standard_name" %in% names(df)){
+    map_df <- read_csv(select_model_file()$map, col_select = c('lon', 'lat', 'vals', "units")) #|> 
+    unit <- unique(map_df$units)
+
+    var_keys$MOM_code == input$variable_MOM
+    # Getting standard name from dataset
+    if("standard_name" %in% names(map_df)){
       std_name <- df |> 
         distinct(standard_name) 
     }else{
@@ -311,13 +293,11 @@ server <- function(input, output, session) {
     cb_lab <- paste0(input$variable_MOM, " (", unit, ")")
     
     #Get full file path to relevant file
-    ts_file <- file.path(ts_dir, region_fishmip())
-    #Load file
-    df2 <- read_csv(ts_file)
+    ts_df <- read_csv(select_model_file()$ts, col_select = c('date', 'vals'))
     
     #Return data frame
-    return(list(map_data = df,
-                ts_data = df2,
+    return(list(map_data = map_df,
+                ts_data = ts_df,
                 std_name = std_name,
                 fig_label = cb_lab))
   })
@@ -400,13 +380,13 @@ server <- function(input, output, session) {
   # Loading download dataset
   down_fishmip <- reactive({
      # Get full file path to relevant file
-     down_file <- file.path(download_dir, region_fishmip())
+     down_file <- file.path(download_dir, select_model_file())
      # Load file
      down_df <- read_csv(down_file)
    })
    
   output$download_data <- downloadHandler(
-    filename = function(){region_fishmip()},
+    filename = function(){select_model_file()},
     # Creating name of download file based on original file name
     content = function(file){write_csv(down_fishmip(), file)})
   
