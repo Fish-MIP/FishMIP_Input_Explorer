@@ -534,80 +534,86 @@ server <- function(input, output, session) {
 
   select_compare_file <- reactive({
     fname_WOA <- get_WOA_filename(reg_nicename = input$region_compare, 
-                              var_nicename = input$variable_compare)
+                                  var_nicename = input$variable_compare)
+    # returns list of map and ts
     fname_MOM <- get_MOM_filename(reg_nicename = input$region_compare, 
-                              var_nicename = input$variable_compare)
+                                  var_nicename = input$variable_compare) 
     
     df_WOA <- read_parquet(fname_WOA)
-    df_MOM <- read_parquet(fname_MOM)
+    map_MOM <- read_parquet(fname_MOM)$map
+    ts_MOM <- read_parquet(fname_MOM)$ts
     
     # fname <- fname # change to combine them somehow
     return(
       list(fname = fname, 
            df_WOA = df_WOA,
-           df_MOM = df_MOM
+           map_MOM = map_MOM,
+           ts_MOM = ts_MOM
            ))
   })
   
   select_compare_data <- reactive({
     df_WOA <- select_compare_file()$df_WOA
     
-    df_MOM <- read_csv(select_compare_file()$df_MOM, col_select = c('lat', 'lon', 'vals')) %>% 
-      mutate(value = vals) %>% 
+    map_MOM <- read_csv(select_compare_file()$map_MOM, col_select = c('lat', 'lon', 'vals')) %>% 
+      mutate(value = vals,
+             source = "MOM5 model output") %>% 
       select(-vals)
-    ts_mom <- read_csv(fname$ts, col_select = c('date', 'vals')) %>% 
-      mutate(value = vals) %>% 
+    map_WOA <- df_WOA %>% 
+      filter(!is.na(value)) %>% 
+      select(-depth, -variable) %>% 
+      group_by(lat, lon) %>% 
+      reframe(value = mean(value)) %>% 
+      mutate(source = "WOA observations")
+    map_compare = rbind(map_MOM, map_WOA)
+      
+    ts_MOM <- read_csv(select_compare_file()$ts_MOM, col_select = c('date', 'vals')) %>% 
+      mutate(value = vals,
+             source = "MOM5 model output") %>% 
       select(-vals)
+    ts_WOA <- df_WOA %>% 
+      filter(!is.na(value)) %>% 
+      mutate(date = as.Date(time)) %>% 
+      select(-depth, -variable, -time) %>% 
+      group_by(date) %>% 
+      reframe(value = mean(value)) %>% 
+      mutate(source = "WOA observations")
+    ts_compare = rbind(ts_MOM, ts_WOA)
     
     return(
-      list(maps_mom = maps_mom, # merge with map_WOA_data
-           ts_mom = ts_mom)) # merge with ts_WOA_data
-  })
-  
-  map_compare_data <- reactive({
-    df <- bind_rows(
-      list(select_MOM_data()$maps_mom %>% mutate(source = "MOM5 model output"), 
-           map_WOA_data() %>% mutate(source = "WOA observations")))
-    xlab <- "Xlabel here"
-    ylab <- "ylabel here"
-    title <- "Title here"
-    return(list(
-      df = df, 
-      title = title, figlabel = "lsadkhgpoifdbg",
-      xlab = xlab, ylab = ylab
-    ))
-  })
-  
-  ts_compare_data <- reactive({
-    df <- bind_rows(
-      list(select_MOM_data()$ts_mom %>% mutate(source = "MOM5 model output"), 
-           ts_WOA_data()$df %>% mutate(source = "WOA observations")))
-    xlab <- "Xlabel here"
-    ylab <- "ylabel here"
-    title <- "Title here"
-    return(list(
-      df = df, 
-      title = title,
-      xlab = xlab, ylab = ylab
-    ))
+      list(map_compare = map_compare, 
+           ts_compare = ts_compare)) 
   })
   
   output$map_compare <- renderPlot({
-    map_compare_data()$df %>% 
-      ggplot(., aes(x = lon, y = lat)) +
+    df <- select_compare_data()$map_compare %>% 
+      mutate(as.factor(source))
+    
+    ggplot(df, aes(x = lon, y = lat, fill = value)) +
       geom_tile() +
-      prettyplot_theme +
-      ggtitle(label = map_compare_data()$title) +
-      labs(x = map_compare_data()$xlab, y = map_compare_data()$ylab)
+      coord_cartesian() +
+      scale_fill_viridis_c() +
+      facet_grid(rows = var(source)) +
+      geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F) +
+      guides(fill = guide_colorbar(title = select_compare_data()$figlabel, 
+                                   title.position = "top", title.hjust = 0.5)) +
+      coord_sf(xlims, ylims) +
+      prettyplot_theme #+
+      # labs(title = select_compare_data()$title,
+      #      x = select_compare_data()$xlab,
+      #      y = select_compare_data()$ylab)
   }, height = 500, width = 1000)
   
   output$ts_compare <- renderPlot({
-    ts_compare_data()$df %>% 
-      ggplot(aes(x = date, y = value, colour = as.factor(source))) +
+    df <- select_compare_data()$ts_compare %>% 
+      mutate(as.factor(source))
+      
+    ggplot(df, aes(x = date, y = value, colour = as.factor(source))) +
       geom_line() +
       prettyplot_theme +
-      ggtitle(label = ts_compare_data()$title) +
-      labs(x = ts_compare_data()$xlab, y = ts_compare_data()$ylab)
+      facet_grid(rows = var(source)) #+
+      # ggtitle(label = ts_compare_data()$title) +
+      # labs(x = ts_compare_data()$xlab, y = ts_compare_data()$ylab)
   }, height = 500, width = 1000)
   
   # output$download_compare <- downloadHandler(
