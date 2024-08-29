@@ -1,4 +1,5 @@
 # Loading libraries -------------------------------------------------------
+library(arrow)
 library(shiny)
 library(shinyWidgets)
 library(readr)
@@ -7,7 +8,6 @@ library(bslib)
 library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
-library(arrow)
 
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
@@ -288,7 +288,7 @@ server <- function(input, output, session) {
     unit <- unique(map_df$units)
     # vname <- var_keys$key_name[var_keys$MOM_code == input$variable_MOM]
 
-    title <- paste0("Mean ", vname) %>% 
+    title <- paste0("Mean ", input$variable_MOM) %>% 
         str_to_sentence()
     map_title <- paste0(title, " from GFDL-MOM6-COBALT2 model (1961-2010)")
     ts_title <- paste0(title, " from GFDL-MOM6-COBALT2 model, ", input$region_MOM, " region")
@@ -525,7 +525,7 @@ server <- function(input, output, session) {
     fname_MOM <- get_MOM_filename(reg_nicename = input$region_compare, 
                                   var_nicename = input$variable_compare) 
     
-    df_WOA <- read_parquet(fname_WOA)
+    df_WOA <- read_parquet(fname_WOA) %>% drop_na()
     map_MOM <- read_csv(fname_MOM$map, col_select = c('lat', 'lon', 'vals'))
     ts_MOM <- read_csv(fname_MOM$ts, col_select = c('date', 'vals'))
     
@@ -560,14 +560,16 @@ server <- function(input, output, session) {
       
     ts_MOM <- select_compare_file()$ts_MOM %>% 
       mutate(value = vals,
-             source = "MOM5 model output") %>% 
-      select(-vals)
+             month = month(date)) %>% 
+      group_by(month) %>% 
+      reframe(value = mean(value)) %>% 
+      mutate(source = "MOM5 model output")
       
     ts_WOA <- select_compare_file()$df_WOA %>% 
       filter(!is.na(value)) %>% 
-      mutate(date = as.Date(time)) %>% 
-      select(-depth, -variable, -time) %>% 
-      group_by(date) %>% 
+      mutate(date = as.Date(time),
+             month = month(date)) %>% 
+      group_by(month) %>% 
       reframe(value = mean(value)) %>% 
       mutate(source = "WOA observations")
     
@@ -646,15 +648,15 @@ server <- function(input, output, session) {
   
   output$ts_compare <- renderPlot({
     df <- select_compare_data()$ts_compare %>% 
-      mutate(as.factor(source))
+      mutate(source = as.factor(source))
       
-    ggplot(df, aes(x = date, y = value, colour = as.factor(source))) +
+    ggplot(df, aes(x = month, y = value, colour = source)) +
       geom_line() +
       prettyplot_theme +
-      facet_grid(rows = var(source)) #+
-      # ggtitle(label = ts_compare_data()$title) +
-      # labs(x = ts_compare_data()$xlab, y = ts_compare_data()$ylab)
-  }, height = 500, width = 1000)
+      scale_x_continuous(breaks = 1:12, labels = month.abb) +
+      ggtitle(label = select_compare_data()$ts_title) +
+      labs(x = select_compare_data()$ts_xlab, y = select_compare_data()$ts_ylab)
+  }, height = 500, width = 750)
   
   # output$download_compare <- downloadHandler(
   #   filename = function(){
