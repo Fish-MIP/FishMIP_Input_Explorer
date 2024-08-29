@@ -562,6 +562,11 @@ server <- function(input, output, session) {
       select(-vals)
 
     map_compare = rbind(map_MOM, map_WOA)
+    
+    map_compare <- map_compare %>% 
+      pivot_wider(names_from = source, 
+                  values_from = value) %>% 
+      mutate(percent_diff = ((`MOM5 model output` - `WOA observations`) / `WOA observations`) * 100)
       
     ts_MOM <- select_compare_file()$ts_MOM %>% 
       mutate(value = vals,
@@ -593,8 +598,7 @@ server <- function(input, output, session) {
   })
   
   output$map_compare <- renderPlot({
-    df <- select_compare_data()$map_compare %>% 
-      mutate(as.factor(source))
+    df <- select_compare_data()$map_compare 
     
     # Compare processing goes here
     
@@ -634,11 +638,11 @@ server <- function(input, output, session) {
                  scaler(maxy, "max"))
     }
 
-    ggplot(df, aes(x = lon, y = lat, fill = value)) +
+    ggplot(df, aes(x = lon, y = lat, fill = percent_diff)) +
       geom_tile() +
       coord_cartesian() +
       scale_fill_viridis_c() +
-      facet_grid(cols = vars(source)) +
+      #facet_grid(cols = vars(source)) +
       geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F) +
       guides(fill = guide_colorbar(title = select_compare_data()$map_figlabel, 
                                    title.position = "top", title.hjust = 0.5)) +
