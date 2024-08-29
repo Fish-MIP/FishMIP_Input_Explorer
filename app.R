@@ -231,7 +231,14 @@ ui <- fluidPage(
                      tabPanel("Climatological map",
                               mainPanel(plotlyOutput(outputId = "map_compare", width = "100%"))),
                      tabPanel("Time series plot",
-                              mainPanel(plotOutput(outputId = "ts_compare", width = "100%")))
+                              mainPanel(plotOutput(outputId = "ts_compare", width = "100%"))),
+                     tags$head(tags$style(type="text/css", " #loadmessage {
+                     position: fixed; bottom: 0px; right: 0px; width: 20%; padding: 10px 0px 10px 0px;
+                     text-align: center; font-weight: bold; font-size: 100%; 
+                     color: #fff; background-color: #008cba; z-index: 105;
+                     }" )),
+                     conditionalPanel(condition="$('html').hasClass('shiny-busy')", 
+                                      tags$div("Loading plot...",id="loadmessage"))
                      )
                    )
                  )
