@@ -226,7 +226,7 @@ ui <- fluidPage(
                  mainPanel(
                    tabsetPanel(
                      tabPanel("Climatological maps",
-                              mainPanel(plotlyOutput(outputId = "map_compare", width = "100%"))),
+                              mainPanel(plotlyOutput(outputId = "map_compare", width = "140%"))),
                      tabPanel("Time series plot",
                               mainPanel(plotOutput(outputId = "ts_compare", width = "100%")))
                      )
