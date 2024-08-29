@@ -137,19 +137,19 @@ ui <- fluidPage(
                    h4(strong("Instructions:")),
                    
                    # Choose region of interest
-                   p("1. Select the FishMIP regional model you would like to visualise."),
+                   p("1. Select a FishMIP model region:"),
                    selectInput(inputId = "region_MOM", label = NULL,
                                choices = region_keys$region, selected = "Central North Pacific"),
                    
                    # Choose variable of interest
-                   p("2. Choose an environmental variable to visualise."),
+                   p("2. Select an environmental variable:"),
                    selectInput(inputId = "variable_MOM",label = NULL,
                                choices = varNames$nicenames, selected = "Temperature"),
                    
-                   p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the 
-                     climatological mean (1961-2010) for the variable of your choice within your region of interest"),
-                   p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area 
-                     weighted yearly mean for the variable and region of your choice."),
+                   p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the 
+                     climatological mean (1961-2010)."),
+                   p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of the area-weighted monthly
+                     mean and the linear temporal trend."),
                    
                    p(em("Optional: "), "Get a copy of the data used to create these plots by clicking the 'Download' button below."),
                    # Download option
@@ -157,7 +157,7 @@ ui <- fluidPage(
                    ),
                  mainPanel(
                    tabsetPanel(
-                     tabPanel("Climatological maps",
+                     tabPanel("Climatological map",
                               mainPanel(plotOutput(outputId = "map_MOM", width = "100%"))
                               ),
                      tabPanel("Time series plot",
@@ -182,10 +182,10 @@ ui <- fluidPage(
                    p("2. Choose an environmental variable to visualise."),
                    selectInput(inputId = "variable_WOA", label = NULL,
                                choices = var_keys$key_name, selected = "Salinity"),
-                   p("3a. Click on the ", strong('Climatological maps'), " tab on the right to see a map of the climatological 
-                     mean (1981-2010) for observations of the variable of your choice within your region of interest"),
+                   p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the climatological 
+                     mean (1981-2010) of observations."),
                    p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area-weighted 
-                     monthly mean for the variable and region of your choice."),
+                     monthly mean of observations."),
                    
                    p(em("Optional: "), "Get a copy of the data used to create these plots by clicking the 'Download' button below."),
                    # Download option
@@ -193,7 +193,7 @@ ui <- fluidPage(
                    ),
                  mainPanel(
                    tabsetPanel(
-                     tabPanel("Climatological maps", 
+                     tabPanel("Climatological map", 
                               mainPanel(plotOutput(outputId = "map_WOA", width = "100%"))),
                      tabPanel("Time series plot",
                               mainPanel(plotOutput(outputId = "ts_WOA", width = "100%")))
@@ -208,16 +208,19 @@ ui <- fluidPage(
                    h4(strong("Instructions:")),
 
                    # Choose region of interest
-                   p("1. Select region"),
+                   p("1. Select the region you would like to visualise."),
                    selectInput(inputId = "region_compare", label = NULL,
                                choices = region_keys$region, selected = "Central North Pacific"),
 
                    # Choose variable of interest
-                   p("2. Choose variable"),
+                   p("2. Choose an environmental variable to visualise."),
                    selectInput(inputId = "variable_compare", label = NULL,
                                choices = var_keys$key_name,  selected = "Salinity"),
-                   p("3a. Click on the ", strong('Climatological maps'), " tab "),
-                   p("3b. Click on the ", strong('Time series plot'), " tab "),
+                   p("3a. Click on the ", strong('Climatological map'), " tab on the right to see a map of the climatological 
+                     mean (1981-2010) of observations."),
+                   p("3b. Click on the ", strong('Time series plot'), " tab to see a time series of area-weighted 
+                     monthly mean of observations."),
+
                    p(em("Optional: "), "Get a copy"),
 
                    # Download option
@@ -225,7 +228,7 @@ ui <- fluidPage(
                    ),
                  mainPanel(
                    tabsetPanel(
-                     tabPanel("Climatological maps",
+                     tabPanel("Climatological map",
                               mainPanel(plotlyOutput(outputId = "map_compare", width = "100%"))),
                      tabPanel("Time series plot",
                               mainPanel(plotOutput(outputId = "ts_compare", width = "100%")))
@@ -399,12 +402,12 @@ server <- function(input, output, session) {
       down_file = down_file
     ))
    })
-   
-  output$download_data <- downloadHandler(
-    filename = function(){MOM_down_data()$filestring},
-    # Creating name of download file based on original file name
-    content = function(file){write_csv(MOM_down_data()$down_file, file)}
-    )
+  
+  # output$download_data <- downloadHandler(
+  #   filename = function(){MOM_down_data()$filestring},
+  #   # Creating name of download file based on original file name
+  #   content = function(file){write_csv(MOM_down_data()$down_file, file)}
+  # )
   
 ## Observations tab ------------------------------------------------------------
   
@@ -514,13 +517,13 @@ server <- function(input, output, session) {
            y = map_WOA_data()$ylab)
   }, height = 500, width = 1000)
   
-  output$download_WOA <- downloadHandler(
-    filename = function(){
-      str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
-      },
-    # Creating name of download file based on original file name
-    content = function(file){write_csv(x = map_WOA_data()$df, file = file)}
-  )
+  # output$download_WOA <- downloadHandler(
+  #   filename = function(){
+  #     str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
+  #     },
+  #   # Creating name of download file based on original file name
+  #   content = function(file){write_csv(x = map_WOA_data()$df, file = file)}
+  # )
   
 ## Comparison tab --------------------------------------------------------------
 
