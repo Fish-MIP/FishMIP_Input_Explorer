@@ -436,21 +436,19 @@ server <- function(input, output, session) {
   })
 
   ts_WOA_data <- reactive({
-    df <- select_WOA_file()$df %>%
+    df <- read_parquet(select_WOA_file()) %>%
       filter(!is.na(value)) %>% 
       mutate(date = as.Date(time)) %>% 
       select(-depth, -variable, -time) %>% 
       group_by(date) %>% 
       reframe(value = mean(value))
-    xlab <- "TS WOA Xlabel"
-    ylab <- "TS WOA ylabel"
-    title <- "TS WOA title"
+
     return(list(
       df = df, 
-      title = title, 
+      title = "TS WOA title", 
       figlabel = "Map WOA legend label",
-      xlab = xlab, 
-      ylab = ylab
+      xlab = "TS WOA Xlabel", 
+      ylab = "TS WOA ylabel"
     ))
   })
   
