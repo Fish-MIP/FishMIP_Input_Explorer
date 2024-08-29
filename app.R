@@ -8,6 +8,8 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
 library(arrow)
+library(plotly)
+options(scipen = 99)
 
 # Setting up  -------------------------------------------------------------
 # Load mask for regional ecosystem models
@@ -207,7 +209,7 @@ ui <- fluidPage(
                  mainPanel(
                    tabsetPanel(
                      tabPanel("Climatological maps",
-                              mainPanel(plotOutput(outputId = "map_compare", width = "100%"))),
+                              mainPanel(plotlyOutput(outputId = "map_compare", width = "100%"))),
                      tabPanel("Time series plot",
                               mainPanel(plotOutput(outputId = "ts_compare", width = "100%")))
                      )
@@ -546,7 +548,8 @@ server <- function(input, output, session) {
     map_compare <- map_compare %>% 
       pivot_wider(names_from = source, 
                   values_from = value) %>% 
-      mutate(percent_diff = ((`MOM5 model output` - `WOA observations`) / `WOA observations`) * 100)
+      mutate(percent_diff = round((( `MOM5 model output` - `WOA observations`) / `WOA observations`) * 100, 2))
+    
       
     ts_MOM <- select_compare_file()$ts_MOM %>% 
       mutate(value = vals,
@@ -577,7 +580,7 @@ server <- function(input, output, session) {
     ))
   })
   
-  output$map_compare <- renderPlot({
+  output$map_compare <- renderPlotly({
     df <- select_compare_data()$map_compare 
     
     # Compare processing goes here
@@ -618,7 +621,7 @@ server <- function(input, output, session) {
                  scaler(maxy, "max"))
     }
 
-    ggplot(df, aes(x = lon, y = lat, fill = percent_diff)) +
+    p <- ggplot(df, aes(x = lon, y = lat, fill = percent_diff)) +
       geom_tile() +
       coord_cartesian() +
       scale_fill_viridis_c() +
@@ -627,12 +630,16 @@ server <- function(input, output, session) {
       guides(fill = guide_colorbar(title = select_compare_data()$map_figlabel, 
                                    title.position = "top", title.hjust = 0.5)) +
       coord_sf(xlims, ylims) +
-      prettyplot_theme +
+      #prettyplot_theme +
+      theme_minimal() +
       labs(title = select_compare_data()$map_title,
            x = select_compare_data()$map_xlab,
-           y = select_compare_data()$map_ylab)
+           y = select_compare_data()$map_ylab) +
+      theme(legend.key.size = unit(0.2, "cm"),    # Decrease size of legend keys
+            legend.text = element_text(size = 5))
+    ggplotly(p)
     
-  }, height = 500, width = 1000)
+  })
   
   output$ts_compare <- renderPlot({
     df <- select_compare_data()$ts_compare %>% 
