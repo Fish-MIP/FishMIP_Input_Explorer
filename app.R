@@ -156,10 +156,12 @@ ui <- fluidPage(
                  mainPanel(
                    tabsetPanel(
                      tabPanel("Climatological map",
-                              mainPanel(plotOutput(outputId = "map_MOM", width = "100%"))
+                              mainPanel(
+                                br(), plotOutput(outputId = "map_MOM", width = "100%") )
                               ),
                      tabPanel("Time series plot",
-                              mainPanel(plotOutput(outputId = "ts_MOM", width = "100%"))
+                              mainPanel(
+                                br(), plotOutput(outputId = "ts_MOM", width = "100%"))
                               )
                      )
                    )
@@ -192,9 +194,13 @@ ui <- fluidPage(
                  mainPanel(
                    tabsetPanel(
                      tabPanel("Climatological map", 
-                              mainPanel(plotOutput(outputId = "map_WOA", width = "100%"))),
+                              mainPanel(
+                                br(), plotOutput(outputId = "map_WOA", width = "100%"))
+                              ),
                      tabPanel("Time series plot",
-                              mainPanel(plotOutput(outputId = "ts_WOA", width = "100%")))
+                              mainPanel(
+                                br(), plotOutput(outputId = "ts_WOA", width = "100%"))
+                              )
                      )
                    )
                  )
@@ -227,9 +233,13 @@ ui <- fluidPage(
                  mainPanel(
                    tabsetPanel(
                      tabPanel("Climatological maps",
-                              mainPanel(plotlyOutput(outputId = "map_compare", width = "140%"))),
+                              mainPanel(
+                                br(), plotlyOutput(outputId = "map_compare", width = "140%"))
+                              ),
                      tabPanel("Time series plot",
-                              mainPanel(plotOutput(outputId = "ts_compare", width = "100%"))),
+                              mainPanel(
+                                br(), plotOutput(outputId = "ts_compare", width = "100%"))
+                              ),
                      tags$head(tags$style(type="text/css", " #loadmessage {
                      position: fixed; bottom: 0px; right: 0px; width: 20%; padding: 10px 0px 10px 0px;
                      text-align: center; font-weight: bold; font-size: 100%; 
