@@ -27,11 +27,14 @@ download_dir <- file.path(fishmip_dir, "download_data")
 maps_dir <- file.path(fishmip_dir, "maps_data")
 ts_dir <- file.path(fishmip_dir, "ts_data")
 
-# Getting list of all files within folder
-var_files <- list.files(maps_dir) 
+# Getting list of all files within folders
+MOM_map_files <- list.files(maps_dir, full.names = T) 
+MOM_ts_files <- list.files(ts_dir, full.names = T) 
+MOM_download_files <- list.files(download_dir, full.names = T) 
 
 # Getting names of environmental variables available
-varNames <- str_extract(var_files, ".*obsclim_(.*)_[0-9]{2}arc.*", 
+varNames <- str_extract(MOM_map_files, 
+                        ".*obsclim_(.*)_[0-9]{2}arc.*", 
                         group = 1) |> 
   unique()
 
@@ -60,7 +63,7 @@ prettyplot_theme <- theme_classic() +
         legend.text = element_text(size = 15), 
         legend.title = element_text(size = 15))
 
-# OHW data  ---------------------------------------------------------------
+# Data files  ------------------------------------------------------------------
 WOA_files <- list.files(file.path("example_data", "WOA_data"), full.names = T) %>% 
   str_subset(pattern = ".parquet")
 
@@ -70,7 +73,7 @@ get_WOA_filename <- function(reg_nicename, var_nicename) {
     str_replace_all(" ", "_") %>% # Replace spaces with underscores
     str_replace_all("i'i", "ii") # Replace Hawai'i with Hawaii
   
-  var_filename <- var_keys$key_name[var_keys$variable == var_nicename]
+  var_filename <- var_keys$variable[var_keys$key_name == var_nicename]
   
   WOA_files %>% 
     str_subset(reg_filename) %>% 
@@ -83,16 +86,14 @@ get_MOM_filename <- function(reg_nicename, var_nicename) {
     str_replace_all("i'i", "ii") %>% # Replace Hawai'i with Hawaii
     str_to_lower()
   
-  var_filename <- var_keys$key_name[var_keys$variable == var_nicename]
-  
-  obs_files <- list.files(c(maps_dir, ts_dir), full.names = T) %>% 
-    str_subset(reg_filename) %>% 
-    str_subset(var_filename)
+  var_filename <- var_keys$MOM_code[var_keys$key_name == var_nicename]
   
   return(list(
-    map = str_subset(obs_files, maps_dir),
-    ts = str_subset(obs_files, ts_dir)
-  ))
+    map = MOM_map_files %>% 
+      str_subset(reg_filename) %>% str_subset(var_filename),
+    ts = MOM_ts_files %>% 
+      str_subset(reg_filename) %>% str_subset(var_filename)
+  )) # gives two filenames
 }
 
 # Defining user interface ------------------------------------------------------
@@ -455,41 +456,41 @@ server <- function(input, output, session) {
   output$map_WOA <- renderPlot({
     df <- map_WOA_data()$df
     
-    # # Adjusting map proportions
-    # minx <- min(df$lon)
-    # maxx <- max(df$lon)
-    # miny <- min(df$lat)
-    # maxy <- max(df$lat)
-    # 
-    # # Calculate range
-    # rangex <- abs(abs(maxx)-abs(minx))
-    # rangey <- abs(abs(maxy)-abs(miny))
-    # 
-    # # Check if map crosses international date line
-    # if(rangex == 0 & str_detect(input$region_WOA, "Southern Ocean", negate = T)){
-    #   df <- df |>
-    #     mutate(lon = lon%%360)
-    #   minx <- min(df$lon)
-    #   maxx <- max(df$lon)
-    #   rangex <- abs(abs(maxx)-abs(minx))
-    # }
-    # # Apply scaler function
-    # if(rangex >= 1.15*rangey){
-    #   ylims <- c(scaler(miny, "min"),
-    #              scaler(maxy, "max"))
-    #   xlims <- c(scaler(minx, "min", ratio = T),
-    #              scaler(maxx, "max", ratio = T))
-    # }else if(rangey >= 1.15*rangex){
-    #   xlims <- c(scaler(minx, "min"),
-    #              scaler(maxx, "max"))
-    #   ylims <- c(scaler(miny, "min", ratio = T),
-    #              scaler(maxy, "max", ratio = T))
-    # }else{
-    #   xlims <- c(scaler(minx, "min"),
-    #              scaler(maxx, "max"))
-    #   ylims <- c(scaler(miny, "min"),
-    #              scaler(maxy, "max"))
-    # }
+    # Adjusting map proportions
+    minx <- min(df$lon)
+    maxx <- max(df$lon)
+    miny <- min(df$lat)
+    maxy <- max(df$lat)
+
+    # Calculate range
+    rangex <- abs(abs(maxx)-abs(minx))
+    rangey <- abs(abs(maxy)-abs(miny))
+
+    # Check if map crosses international date line
+    if(rangex == 0 & str_detect(input$region_WOA, "Southern Ocean", negate = T)){
+      df <- df |>
+        mutate(lon = lon%%360)
+      minx <- min(df$lon)
+      maxx <- max(df$lon)
+      rangex <- abs(abs(maxx)-abs(minx))
+    }
+    # Apply scaler function
+    if(rangex >= 1.15*rangey){
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+      xlims <- c(scaler(minx, "min", ratio = T),
+                 scaler(maxx, "max", ratio = T))
+    }else if(rangey >= 1.15*rangex){
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min", ratio = T),
+                 scaler(maxy, "max", ratio = T))
+    }else{
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+    }
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = value)) +
@@ -535,68 +536,118 @@ server <- function(input, output, session) {
                                   var_nicename = input$variable_compare) 
     
     df_WOA <- read_parquet(fname_WOA)
-    map_MOM <- read_parquet(fname_MOM)$map
-    ts_MOM <- read_parquet(fname_MOM)$ts
+    map_MOM <- read_csv(fname_MOM$map, col_select = c('lat', 'lon', 'vals'))
+    ts_MOM <- read_csv(fname_MOM$ts, col_select = c('date', 'vals'))
     
     # fname <- fname # change to combine them somehow
-    return(
-      list(fname = fname, 
-           df_WOA = df_WOA,
-           map_MOM = map_MOM,
-           ts_MOM = ts_MOM
-           ))
+    return(list(
+      fname = fname_WOA, 
+      df_WOA = df_WOA,
+      map_MOM = map_MOM,
+      ts_MOM = ts_MOM
+    ))
   })
   
   select_compare_data <- reactive({
-    df_WOA <- select_compare_file()$df_WOA
-    
-    map_MOM <- read_csv(select_compare_file()$map_MOM, col_select = c('lat', 'lon', 'vals')) %>% 
-      mutate(value = vals,
-             source = "MOM5 model output") %>% 
-      select(-vals)
-    map_WOA <- df_WOA %>% 
+    map_WOA <- select_compare_file()$df_WOA %>% 
       filter(!is.na(value)) %>% 
       select(-depth, -variable) %>% 
       group_by(lat, lon) %>% 
       reframe(value = mean(value)) %>% 
       mutate(source = "WOA observations")
-    map_compare = rbind(map_MOM, map_WOA)
-      
-    ts_MOM <- read_csv(select_compare_file()$ts_MOM, col_select = c('date', 'vals')) %>% 
+    
+    map_MOM <- select_compare_file()$map_MOM %>% 
       mutate(value = vals,
              source = "MOM5 model output") %>% 
       select(-vals)
-    ts_WOA <- df_WOA %>% 
+
+    map_compare = rbind(map_MOM, map_WOA)
+      
+    ts_MOM <- select_compare_file()$ts_MOM %>% 
+      mutate(value = vals,
+             source = "MOM5 model output") %>% 
+      select(-vals)
+      
+    ts_WOA <- select_compare_file()$df_WOA %>% 
       filter(!is.na(value)) %>% 
       mutate(date = as.Date(time)) %>% 
       select(-depth, -variable, -time) %>% 
       group_by(date) %>% 
       reframe(value = mean(value)) %>% 
       mutate(source = "WOA observations")
+    
     ts_compare = rbind(ts_MOM, ts_WOA)
     
-    return(
-      list(map_compare = map_compare, 
-           ts_compare = ts_compare)) 
+    return(list(
+      map_compare = map_compare, 
+      map_title = "Compare map title",
+      map_figlabel = "Compare map figlabel",
+      map_xlab = "Compare map xlab",
+      map_ylab = "Compare map ylab",
+      ts_compare = ts_compare,
+      ts_title = "Compare ts title",
+      ts_figlabel = "Compare ts figlabel",
+      ts_xlab = "Compare ts xlab",
+      ts_ylab = "Compare ts ylab"
+    ))
   })
   
   output$map_compare <- renderPlot({
     df <- select_compare_data()$map_compare %>% 
       mutate(as.factor(source))
     
+    # Compare processing goes here
+    
+    # Adjusting map proportions
+    minx <- min(df$lon)
+    maxx <- max(df$lon)
+    miny <- min(df$lat)
+    maxy <- max(df$lat)
+    
+    # Calculate range
+    rangex <- abs(abs(maxx)-abs(minx))
+    rangey <- abs(abs(maxy)-abs(miny))
+    
+    # Check if map crosses international date line
+    if(rangex == 0 & str_detect(input$region_MOM, "Southern Ocean", negate = T)){
+      df <- df |>
+        mutate(lon = lon%%360)
+      minx <- min(df$lon)
+      maxx <- max(df$lon)
+      rangex <- abs(abs(maxx)-abs(minx))
+    }
+    # Apply scaler function
+    if(rangex >= 1.15*rangey){
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+      xlims <- c(scaler(minx, "min", ratio = T),
+                 scaler(maxx, "max", ratio = T))
+    }else if(rangey >= 1.15*rangex){
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min", ratio = T),
+                 scaler(maxy, "max", ratio = T))
+    }else{
+      xlims <- c(scaler(minx, "min"),
+                 scaler(maxx, "max"))
+      ylims <- c(scaler(miny, "min"),
+                 scaler(maxy, "max"))
+    }
+
     ggplot(df, aes(x = lon, y = lat, fill = value)) +
       geom_tile() +
       coord_cartesian() +
       scale_fill_viridis_c() +
-      facet_grid(rows = var(source)) +
+      facet_grid(cols = vars(source)) +
       geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", show.legend = F) +
-      guides(fill = guide_colorbar(title = select_compare_data()$figlabel, 
+      guides(fill = guide_colorbar(title = select_compare_data()$map_figlabel, 
                                    title.position = "top", title.hjust = 0.5)) +
       coord_sf(xlims, ylims) +
-      prettyplot_theme #+
-      # labs(title = select_compare_data()$title,
-      #      x = select_compare_data()$xlab,
-      #      y = select_compare_data()$ylab)
+      prettyplot_theme +
+      labs(title = select_compare_data()$map_title,
+           x = select_compare_data()$map_xlab,
+           y = select_compare_data()$map_ylab)
+    
   }, height = 500, width = 1000)
   
   output$ts_compare <- renderPlot({
