@@ -119,7 +119,7 @@ ui <- fluidPage(
                    # Choose region of interest
                    p("1. Select the FishMIP regional model you would like to visualise."),
                    selectInput(inputId = "region_MOM", label = NULL,
-                               choices = region_keys$region, selected = "Brazil NE"),
+                               choices = region_keys$region, selected = "Central North Pacific"),
                    
                    # Choose variable of interest
                    p("2. Choose an environmental variable to visualise."),
@@ -156,7 +156,7 @@ ui <- fluidPage(
                    # Choose region of interest
                    p("1. Select the region you would like to visualise."),
                    selectInput(inputId = "region_WOA", label = NULL,
-                               choices = region_keys$region, selected = "Brazil NE"),
+                               choices = region_keys$region, selected = "Central North Pacific"),
                    
                    # Choose variable of interest
                    p("2. Choose an environmental variable to visualise."),
@@ -190,7 +190,7 @@ ui <- fluidPage(
                    # Choose region of interest
                    p("1. Select region"),
                    selectInput(inputId = "region_compare", label = NULL,
-                               choices = region_keys$region, selected = "Brazil NE"),
+                               choices = region_keys$region, selected = "Central North Pacific"),
 
                    # Choose variable of interest
                    p("2. Choose variable"),
