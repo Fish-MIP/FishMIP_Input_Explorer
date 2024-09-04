@@ -13,7 +13,6 @@
 # https://www.ncei.noaa.gov/data/oceans/woa/WOA23/DOCUMENTATION/WOA23_Product_Documentation.pdf
 
 
-
 # Loading libraries -------------------------------------------------------
 library(thredds)
 library(curl)
@@ -37,8 +36,11 @@ download_thredds <- function(name, destdir, base_http, noaa_datasets,
   #Output:
   # No outputs return. Instead, the function downloads and saves WOA data
   
+  #Create full file path for downloaded data
   file_out <- file.path(destdir, name)
+  #Create full URL to download data
   url_file <- paste0(base_http, noaa_datasets[[name]]$url)
+  #Only download data if it does not exist or if overwrite = T
   if(!file.exists(file_out) | overwrite == T){
     curl_download(url_file, destfile = file_out)
   }
@@ -64,11 +66,15 @@ get_thredds <- function(domain, catalogue, destdir, code, overwrite = F){
   if(!dir.exists(destdir)){
     dir.create(destdir, recursive = T)
   }
+  #Connect to NOAA's THREDDS server
   noaa_reg <- CatalogNode$new(catalogue, prefix = "thredds")
+  #Get download base URL address
   base_http <- paste0(domain, noaa_reg$list_services()$http[["base"]])
-  
+  #Get list of files available to download
   file <- noaa_reg$list_datasets()
-  file <- file[str_extract(names(file), "t(\\d{2})", group = 1) %in% code]
+  #Keep files that match numerical code provided
+  file <- file[str_extract(names(file), "_[a-z](\\d{2})_", group = 1) %in% code]
+  #Download data
   names(file) |> 
     map(\(x) download_thredds(x, destdir, base_http, noaa_reg$get_datasets(), 
                               overwrite))
@@ -76,32 +82,30 @@ get_thredds <- function(domain, catalogue, destdir, code, overwrite = F){
 
 
 # Applying download functions ---------------------------------------------
-# If you source this script it might take a while
-start <- Sys.time()
-print(paste0("Started downloads at ", start))
 
+#Define basic variables
 months <- str_pad(1:12, width = 2, pad = 0)
 domain <- "https://www.ncei.noaa.gov"
-catalogue <- paste0(domain, "/thredds-ocean/catalog/woa23/DATA/temperature/",
-                     "netcdf/decav81B0/0.25/catalog.xml")
 destdir <- "/g/data/vf71/WOA_data"
 
-get_thredds(domain, catalogue, destdir, months, overwrite = F)
+start <- Sys.time()
+print(paste0("Started download at ", start))
 
-
-############# TO DO ######################
-#incorporate code into months - temp data should look like "t01", but salinity
-#should look like "s01"
-
+#Define variables to download temperature data
+catalogue <- paste0(domain, "/thredds-ocean/catalog/woa23/DATA/temperature/",
+                    "netcdf/decav81B0/0.25/catalog.xml")
+get_thredds(domain, catalogue, file.path(destdir, "temperature"), months, 
+            overwrite = F)
 
 print(paste0("Halfway there at ", Sys.time()))
 
-sapply(X = months, 
-       code = "s",
-       FUN = get_thredds, 
-       domain = domain,
-       catalogue = paste0(domain, "thredds-ocean/catalog/woa23/DATA/salinity/netcdf/decav81B0/0.25/catalog.xml"),
-       destdir = "example_data/WOA_data/")
+#Define variables to download salinity data
+catalogue <- paste0(domain, "/thredds-ocean/catalog/woa23/DATA/salinity/",
+                    "netcdf/decav81B0/0.25/catalog.xml")
+get_thredds(domain, catalogue, file.path(destdir, "salinity"), months, 
+            overwrite = F)
 
 end <- Sys.time()
-print(paste0("Finished downloads at ", end, ". Total time taken: ", round(difftime(end, start, units='mins'), 2), " minutes."))
+
+print(paste0("Finished download at ", end, ". Total time taken: ", 
+             round(difftime(end, start, units = "mins"), 2), " minutes."))
