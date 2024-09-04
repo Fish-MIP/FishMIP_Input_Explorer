@@ -54,7 +54,7 @@ def netcdf_to_zarr(list_files, var_name, file_out):
     da_rechunk.to_zarr(file_out, consolidated = True, mode = 'w')
 
 # Defining path to WOA_data directory
-WOA_path = '/g/data/vf71/WOA_data/'
+WOA_path = '/g/data/vf71/WOA_data/global/'
 
 # Save WOA temperature files as zarr files
 WOA_temp = sorted(glob(os.path.join(WOA_path, '*/*_t*.nc')))

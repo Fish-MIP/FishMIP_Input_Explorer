@@ -86,7 +86,7 @@ get_thredds <- function(domain, catalogue, destdir, code, overwrite = F){
 #Define basic variables
 months <- str_pad(1:12, width = 2, pad = 0)
 domain <- "https://www.ncei.noaa.gov"
-destdir <- "/g/data/vf71/WOA_data"
+destdir <- "/g/data/vf71/WOA_data/global"
 
 start <- Sys.time()
 print(paste0("Started download at ", start))
