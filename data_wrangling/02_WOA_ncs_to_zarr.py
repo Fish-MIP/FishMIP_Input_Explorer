@@ -58,11 +58,25 @@ WOA_path = '/g/data/vf71/WOA_data/global/'
 
 # Save WOA temperature files as zarr files
 WOA_temp = sorted(glob(os.path.join(WOA_path, '*/*_t*.nc')))
+# Selecting monthly data
+WOA_temp_month = [f for f in WOA_temp if '00' not in f]
 temp_out = os.path.join(WOA_path, 'woa23_month_clim_mean_temp_1981-2010.zarr')
+netcdf_to_zarr(WOA_temp_month, 't_an', temp_out)
+
+# Climatological mean
+WOA_temp = [f for f in WOA_temp if '00' in f]
+temp_out = os.path.join(WOA_path, 'woa23_clim_mean_temp_1981-2010.zarr')
 netcdf_to_zarr(WOA_temp, 't_an', temp_out)
+
 
 # Save WOA salinity files as zarr files
 WOA_sal = sorted(glob(os.path.join(WOA_path, '*/*_s*.nc')))
+# Selecting monthly data
+WOA_sal_month = [f for f in WOA_sal if '00' not in f]
 sal_out = os.path.join(WOA_path, 'woa23_month_clim_mean_sal_1981-2010.zarr')
-netcdf_to_zarr(WOA_sal, 's_an', sal_out)
+netcdf_to_zarr(WOA_sal_month, 's_an', sal_out)
 
+# Climatological mean
+WOA_sal = [f for f in WOA_sal if '00' in f]
+sal_out = os.path.join(WOA_path, 'woa23_clim_mean_sal_1981-2010.zarr')
+netcdf_to_zarr(WOA_sal, 's_an', sal_out)
