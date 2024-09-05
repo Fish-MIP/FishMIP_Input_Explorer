@@ -39,13 +39,17 @@ def netcdf_to_zarr(list_files, var_name, file_out):
     da = xr.open_mfdataset(list_files, decode_times = False)[var_name]
     
     # Fix time coordinate variable - Keep name of month only
-    units, reference_date = da.time.attrs['units'].split('since')
-    da['time'] = pd.date_range(start = reference_date, periods = da.sizes['time'], 
-                               freq = 'MS').strftime('%B')
-    da = da.rename({'time': 'month'})
-    
-    #Rechunk data 
-    da_rechunk = da.chunk({'month': 12, 'depth': 57, 'lat': 120, 'lon': 240})
+    if len(da.time) == 12:
+        units, reference_date = da.time.attrs['units'].split('since')
+        da['time'] = pd.date_range(start = reference_date, periods = da.sizes['time'], 
+                                   freq = 'MS').strftime('%B')
+        da = da.rename({'time': 'month'})
+        #Rechunk data 
+        da_rechunk = da.chunk({'month': 12, 'depth': 57, 'lat': 120, 'lon': 240})
+    elif len(da.time) == 1:
+        da = da.isel(time = 0)
+        #Rechunk data 
+        da_rechunk = da.chunk({'depth': 57, 'lat': 120, 'lon': 240})
 
     #Save data, but ensure directory exists
     out_dir = os.path.dirname(file_out)
