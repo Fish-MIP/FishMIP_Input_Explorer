@@ -1,10 +1,9 @@
-###########################################################################
-#
+#!/usr/bin/env python3
+
 # Extracting WOA data using FishMIP regional model boundaries
 # Author: Denisse Fierro Arcos
 # Date: 2024-09-04
-#
-###########################################################################
+
 
 import xarray as xr
 import zarr

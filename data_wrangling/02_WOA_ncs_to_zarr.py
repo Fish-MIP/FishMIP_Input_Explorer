@@ -1,5 +1,5 @@
-###########################################################################
-#
+#!/usr/bin/env python3
+
 # Converting downloaded WOA data to useable format
 # Author: Tormey Reimer
 # Date: 2024-08-27
@@ -8,8 +8,7 @@
 # 
 # This script consolidates the data already downloaded from WOA by the
 # downloading_WOA.R script and converts it into cloud-friendly zarr files.
-#
-###########################################################################
+
 
 # Calling relevant libraries
 import xarray as xr
