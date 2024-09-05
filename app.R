@@ -134,6 +134,11 @@ ui <- fluidPage(
                  applied to the data prior to its use as forcings of a regional
                  marine ecosystem model."),
                br(),
+               img(src = "FishMIP_regional_model_workflow.png", height = 600,
+                   width = 725, style = "display: block; 
+                                          margin-left: auto;
+                                          margin-right: auto"),
+               br(),
                h3(strong("Who is FishMIP?")),
                p("The Fisheries and Marine Ecosystem Model Intercomparison 
                Project (FishMIP) is an network of more than 100 marine ecosystem
@@ -144,35 +149,62 @@ ui <- fluidPage(
                You can find more information about FishMIP on our ",
                tags$a(href="https://fishmip.org/", "website.")),
                br(),
+               img(src = "FishMIP_regional_models.png", height = 590,
+                   width = 775, style = "display: block; 
+                                          margin-left: auto;
+                                          margin-right: auto"),
+               br(),
                h3(strong("How should I use this tool?")),
-               p("This site has xxx tabs."),
+               p("This site has three main tabs."),
                br(),
                h3(strong("How should I cite data from this site?")),
                p("You can download the data used to create the plots shown in 
                  this interactive tool using the 'Download' button included 
                  under each tab. As a condition of this tool to access data, 
                  you must cite its use. Please use the following citations:"),
-               p("- Citation 1"),
+               p("- Fierro-Arcos, D., Blanchard, J. L., Flynn, C., 
+                 Ortega Cisneros, K., Reimer, T. (2024). FishMIP input explorer 
+                 for regional ecosystem modellers."),
                p("When using the data product in a publication, please include 
                the following citation in addition to the data product citations 
                provided above:"),
-               p("- Citation 2"),
+               p("- Ortega-Cisneros, K., Fierro-Arcos, D. Lindmark, M., et al.
+                 (Preprint). An Integrated Global-to-Regional Scale Workflow for
+                 Simulating Climate Change Impacts on Marine Ecosystems. ESS 
+                 Open Archive. DOI:", 
+                 tags$a(href ="http://dx.doi.org/10.22541/essoar.171587234.44707846/v1",
+                 "10.22541/essoar.171587234.44707846/v1")),
                br(),
                h3(strong("How can I contact you?")),
-               p("If you would   "),
+               p("If you are a regional ecosystem modeller and would like to be 
+                 part of the FishMIP community, you can head to the ",
+                 tags$a(href =  "https://fishmip.org/joinus.html", "'Join us'"),
+                 " section of our website for more information."),
                br(),
                h4(strong("Acknowledgments")),
                p("The development of this tool was funded by the Australian 
                  Government through the Australian Research Council (ARC) 
                  XXXXX Project XXXX. We gratefully acknowledge contributions 
                  from coordinators and contributing modellers of the FishMIP 
-                 and ISIMIP communities. We would also like to acknowledge the 
+                 and ISIMIP communities. We would also like to acknowledge 
+                 OceanHackWeek participants for contributing to the development 
+                 of this tool. Finally, we would also like to acknowledge the 
                  use of computing facilities provided by Digital Research 
                  Services, IT Services at the University of Tasmania."),
                br(),
-               card(img(src = "IMAS_logo.png", height = 150, width = 300, 
-               style = "display: block; margin-left: auto; margin-right:auto")),
                br(),
+               fluidRow(
+                 column(4, img(src = "IMAS_logo.png", height = 150, width = 300,
+                               style = "display: block; margin-left: auto; 
+                               margin-right: auto")),
+                 column(4, img(src = "FishMIP_logo.jpg", height = 150,
+                               width = 350,
+                               style = "display: block; margin-left: auto; 
+                               margin-right: auto")),
+                 column(4, img(src = "UN_OceanDecadeLogo_cropped.png", 
+                               height = 150, width = 325,
+                               style = "display: block; margin-left: auto; 
+                               margin-right: auto"))),
                br()
              )
            )
