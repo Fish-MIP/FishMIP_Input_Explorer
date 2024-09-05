@@ -47,7 +47,9 @@ def netcdf_to_zarr(list_files, var_name, file_out):
         #Rechunk data 
         da_rechunk = da.chunk({'month': 12, 'depth': 57, 'lat': 120, 'lon': 240})
     elif len(da.time) == 1:
+        #Removing time dimension because it is not needed
         da = da.isel(time = 0)
+        da = da.reset_coords('time', drop = True)
         #Rechunk data 
         da_rechunk = da.chunk({'depth': 57, 'lat': 120, 'lon': 240})
 
