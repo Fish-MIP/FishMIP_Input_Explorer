@@ -84,7 +84,7 @@ get_thredds <- function(domain, catalogue, destdir, code, overwrite = F){
 # Applying download functions ---------------------------------------------
 
 #Define basic variables
-months <- str_pad(1:12, width = 2, pad = 0)
+months <- str_pad(0:12, width = 2, pad = 0)
 domain <- "https://www.ncei.noaa.gov"
 destdir <- "/g/data/vf71/WOA_data/global"
 
@@ -107,5 +107,6 @@ get_thredds(domain, catalogue, file.path(destdir, "salinity"), months,
 
 end <- Sys.time()
 
-print(paste0("Finished download at ", end, ". Total time taken: ", 
+print(paste0("Finished download at ", end, 
+             ". Total time taken: ", 
              round(difftime(end, start, units = "mins"), 2), " minutes."))
