@@ -9,3 +9,4 @@ example_data/WOA_data/*.nc
 example_data/download_data/*
 example_data/maps_data/*
 example_data/ts_data/*
+**/.ipynb_checkpoints/
