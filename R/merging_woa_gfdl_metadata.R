@@ -11,7 +11,8 @@ library(stringr)
 ## Loading WOA metadata ----
 woa_meta <- read_csv("/g/data/vf71/WOA_data/woa_var_keys.csv", 
                      show_col_types = F) |> 
-  rename(woa_name = short_name)
+  rename(woa_name = short_name) |> 
+  mutate(standard_name = str_to_title(str_replace_all(standard_name, "_", " ")))
 
 ## Loading GFDL metadata and merging with WOA metadata ----
 all_meta <- file.path("/g/data/vf71/fishmip_inputs/ISIMIP3a/global_inputs", 
