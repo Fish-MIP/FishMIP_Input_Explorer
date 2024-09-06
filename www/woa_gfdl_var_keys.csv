@@ -19,7 +19,7 @@ phyc,mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water,Phytop
 phydiat,mole_concentration_of_diatoms_expressed_as_carbon_in_sea_water,Mole Concentration of Diatoms expressed as Carbon in sea water,mol m-3,NA,NA,NA,NA
 zooc,mole_concentration_of_zooplankton_expressed_as_carbon_in_sea_water,Zooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA
 phydiat-vint,mole_content_of_diatoms_expressed_as_carbon_in_sea_water,Mole Content of Diatoms expressed as Carbon in sea water,mol m-2,NA,NA,NA,NA
-so,sea_water_salinity,Sea Water Salinity,0.001,s_an,sea_water_practical_salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1
+so,sea_water_salinity,Sea Water Salinity,0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1
 chl,mass_concentration_of_phytoplankton_expressed_as_chlorophyll_in_sea_water,Mass Concentration of Total Phytoplankton expressed as Chlorophyll in sea water,kg m-3,NA,NA,NA,NA
 zmicro,mole_concentration_of_microplankton_expressed_as_carbon_in_sea_water,Microzooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA
 zmeso,mole_concentration_of_mesoplankton_expressed_as_carbon_in_sea_water,Mesozooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA
@@ -32,9 +32,9 @@ o2-bot,mole_concentration_of_dissolved_molecular_oxygen_in_sea_water,Dissolved O
 uo,sea_water_x_velocity,Sea Water X Velocity,m s-1,NA,NA,NA,NA
 mlotst-0125,ocean_mixed_layer_thickness_defined_by_sigma_t,Mixed layer depth (delta rho = 0.125),m,NA,NA,NA,NA
 ph,sea_water_ph_reported_on_total_scale,pH,1,NA,NA,NA,NA
-tob,sea_water_potential_temperature,Sea Water Potential Temperature on Bottom,degC,t_an,sea_water_temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius
-thetao,sea_water_potential_temperature,Sea Water Potential Temperature,degC,t_an,sea_water_temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius
+tob,sea_water_potential_temperature,Sea Water Potential Temperature on Bottom,degC,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius
+thetao,sea_water_potential_temperature,Sea Water Potential Temperature,degC,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius
 zooc-vint,mole_content_of_zooplankton_expressed_as_carbon_in_sea_water,Zooplankton Carbon Content,mol m-2,NA,NA,NA,NA
-so-surf,sea_water_salinity,Sea Water Salinity at Surface,0.001,s_an,sea_water_practical_salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1
-tos,sea_surface_temperature,Sea Surface Temperature,degC,t_an,sea_water_temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius
-so-bot,sea_water_salinity,Sea Water Salinity on Bottom (z_b),0.001,s_an,sea_water_practical_salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1
+so-surf,sea_water_salinity,Sea Water Salinity at Surface,0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1
+tos,sea_surface_temperature,Sea Surface Temperature,degC,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius
+so-bot,sea_water_salinity,Sea Water Salinity on Bottom (z_b),0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1
