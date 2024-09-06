@@ -12,7 +12,9 @@ library(stringr)
 woa_meta <- read_csv("/g/data/vf71/WOA_data/woa_var_keys.csv", 
                      show_col_types = F) |> 
   rename(woa_name = short_name) |> 
-  mutate(standard_name = str_to_title(str_replace_all(standard_name, "_", " ")))
+  mutate(woa_name_code = case_when(woa_name == "t_an" ~ "temp",
+                                    woa_name == "s_an" ~ "sal"),
+         standard_name = str_to_title(str_replace_all(standard_name, "_", " ")))
 
 ## Loading GFDL metadata and merging with WOA metadata ----
 all_meta <- file.path("/g/data/vf71/fishmip_inputs/ISIMIP3a/global_inputs", 
