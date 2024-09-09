@@ -32,9 +32,9 @@ o2-bot,mole_concentration_of_dissolved_molecular_oxygen_in_sea_water,Dissolved O
 uo,sea_water_x_velocity,Sea Water X Velocity,m s-1,NA,NA,NA,NA,NA
 mlotst-0125,ocean_mixed_layer_thickness_defined_by_sigma_t,Mixed layer depth (delta rho = 0.125),m,NA,NA,NA,NA,NA
 ph,sea_water_ph_reported_on_total_scale,pH,1,NA,NA,NA,NA,NA
-tob,sea_water_potential_temperature,Sea Water Potential Temperature on Bottom,degC,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius,temp
-thetao,sea_water_potential_temperature,Sea Water Potential Temperature,degC,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius,temp
+tob,sea_water_potential_temperature,Sea Water Potential Temperature on Bottom,°C,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,°C,temp
+thetao,sea_water_potential_temperature,Sea Water Potential Temperature,°C,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,°C,temp
 zooc-vint,mole_content_of_zooplankton_expressed_as_carbon_in_sea_water,Zooplankton Carbon Content,mol m-2,NA,NA,NA,NA,NA
 so-surf,sea_water_salinity,Sea Water Salinity at Surface,0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
-tos,sea_surface_temperature,Sea Surface Temperature,degC,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,degrees_celsius,temp
+tos,sea_surface_temperature,Sea Surface Temperature,°C,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,°C,temp
 so-bot,sea_water_salinity,Sea Water Salinity on Bottom (z_b),0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
