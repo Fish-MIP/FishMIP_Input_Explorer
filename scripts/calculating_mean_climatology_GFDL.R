@@ -37,7 +37,8 @@ if(!dir.exists(base_out_ts)){
 }
 
 #Getting list of parquet files available
-par_list <- list.files(base_dir, pattern = "parquet$", full.names = T)
+par_list <- list.files(file.path(base_dir, "download_data"), 
+                       pattern = "parquet$", full.names = T)
 
 #Loading area file
 area_df <- file.path("/g/data/vf71/shared_resources/grid_cell_area_ESMs/isimip3a",
@@ -267,3 +268,7 @@ par_list |>
   map(\(x) mean_ts(x, weights_df = area_df, folder_out = base_out_ts))
 
 
+par_list |> 
+  map(\(x) mean_ts(x, min_year = 1981, max_year = 2010, monthly = T, 
+                   weights_df = area_df, 
+                   folder_out = file.path(base_out_ts, "comp_clim")))
