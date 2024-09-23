@@ -119,13 +119,13 @@ clim_calc <- function(file_path, monthly = FALSE, min_year = NULL,
       select(lat:vals) |> 
       mutate(month = month(time)) |> 
       group_by(lat, lon, month) |> 
-      summarise(mean_vals = mean(vals, na.rm = T)) |> 
+      summarise(vals = mean(vals, na.rm = T)) |> 
       bind_cols(meta)
   }else{
     clim_maps <- df |> 
       select(lat:vals) |> 
       group_by(lat, lon) |> 
-      summarise(clim_mean = mean(vals, na.rm = T)) |> 
+      summarise(vals = mean(vals, na.rm = T)) |> 
       bind_cols(meta)
   }
     
@@ -212,12 +212,12 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
     ts_df <- df |> 
       left_join(weights_df, join_by(lon, lat)) |> 
       group_by(time) |> 
-      summarise(weighted_mean = weighted.mean(vals, cellareao, na.rm = T),
+      summarise(vals = weighted.mean(vals, cellareao, na.rm = T),
                 weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T)))
   }else if(is.null(weights_df) & !monthly){
     ts_df <- df |> 
       group_by(time) |> 
-      summarise(mean = mean(vals, na.rm = T))
+      summarise(vals = mean(vals, na.rm = T))
   }else if(is.null(weights_df) & monthly){
     if(!"month" %in% names(df)){
       df <- df |>
@@ -225,7 +225,7 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
     }
     ts_df <- df |> 
         group_by(month) |> 
-        summarise(mean = mean(vals, na.rm = T))
+        summarise(vals = mean(vals, na.rm = T))
   }else if(!is.null(weights_df) & monthly){
     if(!"month" %in% names(df)){
       df <- df |>
@@ -234,7 +234,7 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
     ts_df <- df |>
       left_join(weights_df, join_by(lon, lat)) |> 
       group_by(month) |> 
-      summarise(weighted_mean = weighted.mean(vals, cellareao, na.rm = T),
+      summarise(vals = weighted.mean(vals, cellareao, na.rm = T),
                 weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T)))
   }
   
