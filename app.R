@@ -96,6 +96,122 @@ prettyts_theme <- list(geom_line(aes(color = "area weighted monthly mean")),
                              legend.text = element_text(size = 18)))
 
 
+# Defining functions ------------------------------------------------------
+# Helper function to get correct parquet filename from the selected region
+get_filenames <- function(region_nicename, var_nicename, model){
+  reg_filename <- region_nicename |>
+    str_to_lower() |> 
+    str_replace_all(" ", "-") |> 
+    str_replace_all("'", "")
+  
+  if(model == "woa"){
+    var_filename <- var_metadata |> 
+      select(starts_with("woa"), ends_with("woa")) |> 
+      drop_na() |>
+      distinct() |> 
+      filter(standard_name.woa == var_nicename) 
+    
+    woa_name <- var_filename$woa_name_code
+    units <- str_replace_all(var_filename$units.woa, "_", " ")
+    
+    if(units == "1"){
+      cb_lab <- paste0(var_nicename, " (unitless)")
+    }else{
+      cb_lab <- paste0(var_nicename, " (", units, ")")
+    }
+    
+    map <- woa_maps |> 
+      str_subset(reg_filename) |> 
+      str_subset(woa_name)
+    
+    files <- list(map = map,
+                  units = units)
+    
+  }else if(model == "gfdl"){
+    var_filename <- var_metadata |> 
+      filter(long_name.gfdl == var_nicename) 
+    
+    gfdl_name <- var_filename$gfdl_name
+    units <- var_filename$units.gfdl
+    if(units == "1"){
+      cb_lab <- paste0(var_nicename, " (unitless)")
+    }else{
+      cb_lab <- paste0(var_nicename, " (", units, ")")
+    }
+    
+    #Construct pattern to search files
+    pat_glob <- paste0(".*", gfdl_name, "_15arcmin_", reg_filename)
+    
+    #Find map and time series files
+    map <- maps_files |> 
+      str_subset(pattern = pat_glob)
+    ts <- ts_files |> 
+      str_subset(pattern = pat_glob)
+    down <- download_files |> 
+      str_subset(pattern = pat_glob)
+    
+    files <- list(map = map,
+                  ts = ts, 
+                  download = down,
+                  cb_lab = cb_lab)
+  }
+  return(files)
+}
+
+# Function to improve map ratios for plotting
+scaler <- function(x, type, ratio = F){
+  if((x > 0 & type == "min") | (x < 0 & type == "min")){
+    x <- ifelse(ratio == T, x-3, x-6)
+  }else if((x < 0 & type == "max") | (x > 0 & type == "max")){
+    x <- ifelse(ratio == T, x+2, x+5)
+  }else if(x == 0 & type == "min"){
+    x <- ifelse(ratio == T, x-1, x-2)
+  }else{
+    x <- ifelse(ratio == T, x+1, x+2)
+  }
+  return(x)
+}
+
+range_map <- function(df, region){
+  minx <- min(df$lon)
+  maxx <- max(df$lon)
+  miny <- min(df$lat)
+  maxy <- max(df$lat)
+  
+  # Calculate range
+  rangex <- abs(abs(maxx)-abs(minx))
+  rangey <- abs(abs(maxy)-abs(miny))
+  
+  # Check if map crosses international date line
+  if(rangex == 0 & str_detect(region, "Southern Ocean", negate = T)){
+    df <- df |>
+      mutate(lon = lon%%360)
+    minx <- min(df$lon)
+    maxx <- max(df$lon)
+  }
+  
+  if(rangex >= 1.15*rangey){
+    ylims <- c(scaler(miny, "min"),
+               scaler(maxy, "max"))
+    xlims <- c(scaler(minx, "min", ratio = T),
+               scaler(maxx, "max", ratio = T))
+  }else if(rangey >= 1.15*rangex){
+    xlims <- c(scaler(minx, "min"),
+               scaler(maxx, "max"))
+    ylims <- c(scaler(miny, "min", ratio = T),
+               scaler(maxy, "max", ratio = T))
+  }else{
+    xlims <- c(scaler(minx, "min"),
+               scaler(maxx, "max"))
+    ylims <- c(scaler(miny, "min"),
+               scaler(maxy, "max"))
+  }
+  
+  return(list(xlims = xlims,
+              ylims = ylims))
+}
+
+
 # Defining user interface ------------------------------------------------------
 
 ## Global UI -------------------------------------------------------------------
@@ -345,12 +461,13 @@ ui <- fluidPage(
                  column(4, img(src = "IMAS_logo.png", height = 150, width = 300,
                                style = "display: block; margin-left: auto; 
                                margin-right: auto")),
-                 column(4, img(src = "FishMIP_logo.jpg", height = 150,
+                 column(4, br(),
+                        img(src = "FishMIP_logo.jpg", height = 125,
                                width = 350,
                                style = "display: block; margin-left: auto; 
                                margin-right: auto")),
                  column(4, img(src = "UN_OceanDecadeLogo_cropped.png", 
-                               height = 150, width = 325,
+                               height = 150, width = 300,
                                style = "display: block; margin-left: auto; 
                                margin-right: auto"))),
                br()
@@ -367,27 +484,27 @@ server <- function(input, output, session) {
   # Selecting correct file based on inputs from region and env variable selected
   select_model_file <- reactive({
     validate(
-      need(input$variable_gfdl != "", 
-           # display custom message 
+      need(input$variable_gfdl != "",
+           # display custom message
            "Please choose a variable to visualise.")
     )
     get_filenames(region_nicename = input$region_gfdl,
                   var_nicename = input$variable_gfdl, model = "gfdl")
   })
-
+  
   # Loading dataset
   gfdl_data <- reactive({
-    map_df <- read_parquet(select_model_file()$map) |> 
+    map_df <- read_parquet(select_model_file()$map) |>
       select(lat:vals)
-    ts_df <- read_parquet(select_model_file()$ts) |> 
+    ts_df <- read_parquet(select_model_file()$ts) |>
       select(time:vals)
 
     # Create title for colour bar
     cb_lab <- select_model_file()$cb_lab
-    
+
     if("depth_bin_m" %in% names(map_df)){
-      depths <- map_df |> 
-        distinct(depth_bin_m) |> 
+      depths <- map_df |>
+        distinct(depth_bin_m) |>
         pull()
     }else{
       depths <- "Not available"
@@ -400,35 +517,35 @@ server <- function(input, output, session) {
       depths = depths
     ))
   })
-  
+
   observeEvent(gfdl_data(), {
     updateSelectInput(inputId = "depth_gfdl", choices = gfdl_data()$depths)
     })
-  
+
   # Creating first plot
   output$map_gfdl <- renderPlot({
     df <- gfdl_data()$map_data
-    
-    map_title <- paste0("Climatological mean (1961-2010) ", 
+
+    map_title <- paste0("Climatological mean (1961-2010) ",
                         input$variable_gfdl) |>
       str_to_sentence()
-    
+
     depth <- input$depth_gfdl
     # Subsetting data for selected depth
     validate(
-      need(depth != "", 
-           # display custom message 
+      need(depth != "",
+           # display custom message
            "Please wait while we render the map for your chosen depth.")
     )
     if(depth != "Not available"){
-      df <- df |> 
+      df <- df |>
         filter(depth_bin_m == depth)
     }
-    
+
     # Adjusting map proportions
     validate(
-      need(df$lon != "", 
-           # display custom message 
+      need(df$lon != "",
+           # display custom message
            "Please wait while we render the map for your chosen area.")
     )
     range_map <- range_map(df, input$region_gfdl)
@@ -440,26 +557,26 @@ server <- function(input, output, session) {
       guides(fill = guide_colorbar(title = gfdl_data()$cb_lab,
                                    title.position = "top", title.hjust = 0.5))+
       labs(title = str_wrap(map_title, 60),  x = "Longitude", y = "Latitude")
-  }, 
+  },
   height = 500, width = 750)
 
   output$ts_gfdl <- renderPlot({
     df <- gfdl_data()$ts_data
-    
+
     # Create titles for plots
     ts_title <- paste0("Area weighted mean (1961-2010) for ",
-                       input$variable_gfdl) |> 
+                       input$variable_gfdl) |>
       str_to_sentence()
-    
+
     depth_bin <- input$depth_gfdl
     # Subsetting data for selected depth
     validate(
-      need(depth_bin != "", 
-           # display custom message 
+      need(depth_bin != "",
+           # display custom message
            "Please wait while we render the map for your chosen depth.")
     )
     if(depth_bin != "Not available"){
-      df <- df |> 
+      df <- df |>
         filter(depth == depth_bin)
     }
 
@@ -470,33 +587,38 @@ server <- function(input, output, session) {
            y = str_wrap(gfdl_data()$cb_lab, 50), x = "Date")
   }, height = 500, width = 750)
 
-  # # Loading download dataset
+  # Loading download dataset
   # gfdl_down_data <- reactive({
-  #   filestring <- str_split(select_model_file()$map, "/")
-  #   filestring <- filestring[[1]][length(filestring[[1]])]
+  #   # filestring <- str_split(select_model_file()$map, "/")
+  #   # filestring <- filestring[[1]][length(filestring[[1]])]
   # 
   #   # Get full file path to relevant file
-  #   down_file <- file.path(download_dir, filestring)
+  #   down_filepath <- select_model_file()$download#file.path(download_dir, filestring)
+  #   if(str_detect(down_filepath, "zarr$")){
+  #     down_file <- 
+  #   }
   # 
   #   # Load file
   #   down_df <- read_csv(down_file, show_col_types = FALSE)
   #   return(list(
-  #     filestring = filestring,
+  #     filestring = basename(down_file),#filestring,
   #     down_file = down_file
   #   ))
   # })
+  # 
+  # output$download_data <- downloadHandler(
+  #   filename = function(){basename(select_model_file()$download)},
+  #   # Creating name of download file based on original file name
+  #   content = function(file){
+  #     down_df <- read_parquet(select_model_file()$download)
+  #     write_csv(down_df, file)}
+  # )
 
-#   # output$download_data <- downloadHandler(
-#   #   filename = function(){gfdl_down_data()$filestring},
-#   #   # Creating name of download file based on original file name
-#   #   content = function(file){write_csv(gfdl_down_data()$down_file, file)}
-#   # )
-#   
   ## Observations tab ----------------------------------------------------------
 
   # Select correct file based on inputs from region and variable selected
   select_WOA_file <- reactive({
-    get_filenames(region_nicename = input$region_WOA, 
+    get_filenames(region_nicename = input$region_WOA,
                   var_nicename = input$variable_WOA, model = "woa")
   })
 
@@ -504,13 +626,13 @@ server <- function(input, output, session) {
   map_WOA_data <- reactive({
     df <- read_parquet(select_WOA_file()$map) |>
       select(lat:vals) |>
-      filter(depth == 0) |> 
+      filter(depth == 0) |>
       drop_na(vals)
 
-    map_title <- paste0("Climatological mean (1981-2010) ", 
+    map_title <- paste0("Climatological mean (1981-2010) ",
                         input$variable_WOA) |>
       str_to_sentence()
-    
+
     # Get units
     unit <- select_WOA_file()$units
 
@@ -519,7 +641,7 @@ server <- function(input, output, session) {
     } else {
       figlabel <- paste0(input$variable_WOA, " (", unit, ")")
     }
-    
+
     return(list(
       df = df,
       title = map_title,
@@ -552,14 +674,14 @@ server <- function(input, output, session) {
   #     ylab = ylab
   #   ))
   # })
-  # 
+
   output$map_WOA <- renderPlot({
     df <- map_WOA_data()$df
-    
+
     # Adjusting map proportions
     validate(
-      need(df$lon != "", 
-           # display custom message 
+      need(df$lon != "",
+           # display custom message
            "Please wait while we render the map for your chosen area.")
     )
 
@@ -593,7 +715,7 @@ server <- function(input, output, session) {
       coord_sf(ylim = ylims, xlim = xlims, expand = F) +
       labs(title = map_WOA_data()$title, x = "Longitude", y = "Latitude")
   }, height = 500, width = 750)
-  # 
+
   # output$ts_WOA <- renderPlot({
   #   df <- ts_WOA_data()$df
   # 
