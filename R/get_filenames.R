@@ -15,6 +15,12 @@ get_filenames <- function(region_nicename, var_nicename, model){
     woa_name <- var_filename$woa_name_code
     units <- str_replace_all(var_filename$units.woa, "_", " ")
     
+    if(units == "1"){
+      cb_lab <- paste0(var_nicename, " (unitless)")
+    }else{
+      cb_lab <- paste0(var_nicename, " (", units, ")")
+    }
+    
     map <- woa_maps |> 
       str_subset(reg_filename) |> 
       str_subset(woa_name)
@@ -28,6 +34,11 @@ get_filenames <- function(region_nicename, var_nicename, model){
     
     gfdl_name <- var_filename$gfdl_name
     units <- var_filename$units.gfdl
+    if(units == "1"){
+      cb_lab <- paste0(var_nicename, " (unitless)")
+    }else{
+      cb_lab <- paste0(var_nicename, " (", units, ")")
+    }
     
     #Construct pattern to search files
     pat_glob <- paste0(".*", gfdl_name, "_15arcmin_", reg_filename)
@@ -43,7 +54,7 @@ get_filenames <- function(region_nicename, var_nicename, model){
     files <- list(map = map,
                   ts = ts, 
                   download = down,
-                  units = units)
+                  cb_lab = cb_lab)
   }
   return(files)
 }
