@@ -26,9 +26,10 @@ woa_variables <- var_metadata |>
 
 # First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
-# fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
-#                       "obsclim/regional/monthly/historical/GFDL-MOM6-COBALT2")
-fishmip_dir <- "/g/data/vf71/fishmip_inputs/ISIMIP3a/regional_inputs/obsclim/025deg"
+fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
+                         "ocean/obsclim/regional/monthly/historical",
+                         "GFDL-MOM6-COBALT2")
+# fishmip_dir <- "/g/data/vf71/fishmip_inputs/ISIMIP3a/regional_inputs/obsclim/025deg"
 
 #Get a list of GFDL files available 
 #For download
