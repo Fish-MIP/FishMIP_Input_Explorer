@@ -11,7 +11,6 @@ library(tidyr)
 library(sf)
 library(plotly)
 library(ggplot2)
-# library(lubridate)
 options(scipen = 99)
 
 # Setting up  -------------------------------------------------------------
@@ -29,7 +28,6 @@ woa_variables <- var_metadata |>
 fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
                          "ocean/obsclim/regional/monthly/historical",
                          "GFDL-MOM6-COBALT2")
-# fishmip_dir <- "/g/data/vf71/fishmip_inputs/ISIMIP3a/regional_inputs/obsclim/025deg"
 
 #Get a list of GFDL files available 
 #For download
@@ -45,9 +43,9 @@ ts_files <- file.path(fishmip_dir, "ts_data") |>
   str_subset("comp_clim", negate = T)
 
 # Getting list of all files within folders
-woa_maps <- list.files("/g/data/vf71/WOA_data/regional/climatology", 
+woa_maps <- list.files("/rd/gem/public/fishmip/WOA_data/regional/climatology", 
                         full.names = T)
-woa_ts <- list.files("/g/data/vf71/WOA_data/regional/monthly/comp_clim", 
+woa_ts <- list.files("/rd/gem/public/fishmip/WOA_data/regional/monthly/comp_clim", 
                      full.names = T)
 
 # Loading map of the world
