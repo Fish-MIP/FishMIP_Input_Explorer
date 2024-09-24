@@ -24,9 +24,6 @@ woa_variables <- var_metadata |>
   distinct(standard_name.woa) |> 
   drop_na()
 
-# Depth bins
-depth_bin <- read_csv("www/depth_bins.csv", show_col_types = F)
-
 # First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
 # fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate/ocean",
@@ -131,17 +128,9 @@ ui <- fluidPage(
                  
                  # Choose variable of interest
                  p("2. Select an environmental variable:"),
-                 radioButtons("dims_gfdl",
-                              "Choose if your variable has a single or multiple 
-                              depth levels",
-                              choiceNames = c("Single depth", 
-                                              "Multiple depths"),
-                              choiceValues = c(2, 3),
-                              selected = 2),
-                 
                  selectInput(inputId = "variable_gfdl", 
                              label = "Choose your variable of interest",
-                             choices = NULL),
+                             choices = var_metadata$long_name.gfdl),
                  
                  # Select depth (if available)
                  selectInput(inputId = "depth_gfdl", 
@@ -342,7 +331,8 @@ ui <- fluidPage(
                h4(strong("Acknowledgments")),
                p("The development of this tool was funded by the Australian 
                Government through the Australian Research Council (ARC) 
-                 XXXXX Project XXXX. We gratefully acknowledge contributions 
+                 Future Fellowship Project FT210100798. We gratefully 
+                 acknowledge contributions 
                  from coordinators and contributing modellers of the FishMIP 
                  and ISIMIP communities. We would also like to acknowledge 
                  OceanHackWeek participants for contributing to the development 
@@ -375,31 +365,13 @@ server <- function(input, output, session) {
   # bs_themer()
   
   ## Model tab -----------------------------------------------------------------
-  var_choice <- reactive({
-    dims <- input$dims_gfdl
-    vars <- var_metadata |> 
-      filter(dims.gfl == dims) 
-    if(dims == 3){
-      depths <- depth_bin$depth
-    }else(
-      depths <- "Not available"
-    )
-    return(list(vars = vars,
-                depth = depths))
-  })
-
-  observeEvent(var_choice(), {
-    choices <- var_choice()$vars |> 
-      pull(long_name.gfdl)
-    updateSelectInput(inputId = "variable_gfdl", choices = choices)
-    
-    depths <- var_choice()$depth 
-    updateSelectInput(inputId = "depth_gfdl", choices = depths)
-  })
-  
-  
   # Selecting correct file based on inputs from region and env variable selected
   select_model_file <- reactive({
+    validate(
+      need(input$variable_gfdl != "", 
+           # display custom message 
+           "Please choose a variable to visualise.")
+    )
     get_filenames(region_nicename = input$region_gfdl,
                   var_nicename = input$variable_gfdl, model = "gfdl")
   })
@@ -408,41 +380,51 @@ server <- function(input, output, session) {
   gfdl_data <- reactive({
     map_df <- read_parquet(select_model_file()$map) |> 
       select(lat:vals)
-    if("depth" %in% names(map_df)){
-      map_df <- map_df |> 
-        filter(depth == 2.5)
-    }
     ts_df <- read_parquet(select_model_file()$ts) |> 
       select(time:vals)
-    if("depth" %in% names(ts_df)){
-      ts_df <- ts_df |> 
-        filter(depth == 2.5)
+
+    # Create title for colour bar
+    cb_lab <- select_model_file()$cb_lab
+    
+    if("depth_bin_m" %in% names(map_df)){
+      depths <- map_df |> 
+        distinct(depth_bin_m) |> 
+        pull()
+    }else{
+      depths <- "Not available"
     }
-
-    # Get units
-    unit <- select_model_file()$units
-
-    map_title <- paste0("Climatological mean (1961-2010) ", 
-                        input$variable_gfdl) |>
-      str_to_sentence()
-    ts_title <- paste0("Area weighted mean (1961-2010) for ",
-                       input$variable_gfdl) |> 
-      str_to_sentence()
-
-    cb_lab <- paste0(input$variable_gfdl, " (", unit, ")")
 
     return(list(
       map_data = map_df,
-      map_title = map_title,
       ts_data = ts_df,
-      ts_title = ts_title,
-      cb_lab = cb_lab
+      cb_lab = cb_lab,
+      depths = depths
     ))
   })
-
+  
+  observeEvent(gfdl_data(), {
+    updateSelectInput(inputId = "depth_gfdl", choices = gfdl_data()$depths)
+    })
+  
   # Creating first plot
   output$map_gfdl <- renderPlot({
     df <- gfdl_data()$map_data
+    
+    map_title <- paste0("Climatological mean (1961-2010) ", 
+                        input$variable_gfdl) |>
+      str_to_sentence()
+    
+    depth <- input$depth_gfdl
+    # Subsetting data for selected depth
+    validate(
+      need(depth != "", 
+           # display custom message 
+           "Please wait while we render the map for your chosen depth.")
+    )
+    if(depth != "Not available"){
+      df <- df |> 
+        filter(depth_bin_m == depth)
+    }
     
     # Adjusting map proportions
     validate(
@@ -450,41 +432,37 @@ server <- function(input, output, session) {
            # display custom message 
            "Please wait while we render the map for your chosen area.")
     )
-    
-    minx <- min(df$lon)
-    maxx <- max(df$lon)
-    miny <- min(df$lat)
-    maxy <- max(df$lat)
-
-    # Calculate range
-    rangex <- abs(abs(maxx)-abs(minx))
-    rangey <- abs(abs(maxy)-abs(miny))
-
-    # Check if map crosses international date line
-    if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean",
-                                negate = T)){
-      df <- df |>
-        mutate(lon = lon%%360)
-      minx <- min(df$lon)
-      maxx <- max(df$lon)
-    }
-
-    xlims <- c(minx, maxx)
-    ylims <- c(miny, maxy)
+    range_map <- range_map(df, input$region_gfdl)
 
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
-      coord_sf(ylim = ylims, xlim = xlims, expand = F) +
+      coord_sf(ylim = range_map$ylims, xlim = range_map$xlims, expand = T) +
       guides(fill = guide_colorbar(title = gfdl_data()$cb_lab,
                                    title.position = "top", title.hjust = 0.5))+
-      labs(title = str_wrap(gfdl_data()$map_title, 60), 
-           x = "Longitude", y = "Latitude")
+      labs(title = str_wrap(map_title, 60),  x = "Longitude", y = "Latitude")
   }, 
   height = 500, width = 750)
 
   output$ts_gfdl <- renderPlot({
     df <- gfdl_data()$ts_data
+    
+    # Create titles for plots
+    ts_title <- paste0("Area weighted mean (1961-2010) for ",
+                       input$variable_gfdl) |> 
+      str_to_sentence()
+    
+    depth_bin <- input$depth_gfdl
+    # Subsetting data for selected depth
+    validate(
+      need(depth_bin != "", 
+           # display custom message 
+           "Please wait while we render the map for your chosen depth.")
+    )
+    if(depth_bin != "Not available"){
+      df <- df |> 
+        filter(depth == depth_bin)
+    }
 
     # Calculate spatially weighted average of variables selected
     ggplot(df, aes(x = time, y = vals)) +
