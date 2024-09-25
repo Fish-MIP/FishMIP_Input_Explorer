@@ -155,7 +155,8 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
   # will be saved
   
   #Load file
-  df <- read_parquet(file_path)
+  df <- read_parquet(file_path) |> 
+    mutate(time = as.Date(time))
   
   #Getting metadata
   meta <- df |> 
@@ -212,8 +213,9 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
     ts_df <- df |> 
       left_join(weights_df, join_by(lon, lat)) |> 
       group_by(time) |> 
-      summarise(vals = weighted.mean(vals, cellareao, na.rm = T),
-                weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T)))
+      summarise(mean_vals = weighted.mean(vals, cellareao, na.rm = T),
+                weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T))) |> 
+      rename(vals = mean_vals)
   }else if(is.null(weights_df) & !monthly){
     ts_df <- df |> 
       group_by(time) |> 
@@ -234,8 +236,9 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
     ts_df <- df |>
       left_join(weights_df, join_by(lon, lat)) |> 
       group_by(month) |> 
-      summarise(vals = weighted.mean(vals, cellareao, na.rm = T),
-                weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T)))
+      summarise(mean_vals = weighted.mean(vals, cellareao, na.rm = T),
+                weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T))) |> 
+      rename(vals = mean_vals)
   }
   
   #Adding metadata
