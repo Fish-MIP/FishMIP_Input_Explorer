@@ -44,7 +44,7 @@ par_list <- list.files(file.path(base_dir, "download_data"),
 area_df <- file.path("/g/data/vf71/shared_resources/grid_cell_area_ESMs/isimip3a",
                      "gfdl-mom6-cobalt2_areacello_15arcmin_global_fixed.csv") |> 
   read_csv() |> 
-  rename(lon = x, lat = y)
+  rename(lon = x, lat = y) 
 
 
 # Calculating mean climatology --------------------------------------------
@@ -212,6 +212,7 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
   if(!is.null(weights_df) & !monthly){
     ts_df <- df |> 
       left_join(weights_df, join_by(lon, lat)) |> 
+      mutate(cellareao = replace_na(cellareao, 0)) |> 
       group_by(time) |> 
       summarise(mean_vals = weighted.mean(vals, cellareao, na.rm = T),
                 weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T))) |> 
@@ -235,6 +236,7 @@ mean_ts <- function(file_path, min_year = NULL, max_year = NULL, monthly = F,
     }
     ts_df <- df |>
       left_join(weights_df, join_by(lon, lat)) |> 
+      mutate(cellareao = replace_na(cellareao, 0)) |> 
       group_by(month) |> 
       summarise(mean_vals = weighted.mean(vals, cellareao, na.rm = T),
                 weighted_sd = sqrt(wtd.var(vals, cellareao, na.rm = T))) |> 
