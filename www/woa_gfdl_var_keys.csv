@@ -4,10 +4,10 @@ mlotst-003,ocean_mixed_layer_thickness_defined_by_sigma_t,Mixed layer depth (del
 intppdiaz,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_diazotrophs,Net Primary Mole Productivity Of Biomass Expressed As Carbon By Diazotrophs,mol m-2 s-1,2,NA,NA,NA,NA,NA
 phypico-vint,mole_content_of_picophytoplankton_expressed_as_carbon_in_sea_water,Mole Content of Picophytoplankton expressed as Carbon in sea water,mol m-2,2,NA,NA,NA,NA,NA
 ph-surf,sea_water_ph_reported_on_total_scale,pH at surface,1,2,NA,NA,NA,NA,NA
-rsds,NA,Downward Solar Radiation Flux at Surface,W m-2,2,NA,NA,NA,NA,NA
+rsntds,NA,Downward Solar Radiation Flux at Surface,W m-2,2,NA,NA,NA,NA,NA
 phypico,mole_concentration_of_picophytoplankton_expressed_as_carbon_in_sea_water,Mole Concentration of Picophytoplankton expressed as Carbon in sea water,mol m-3,3,NA,NA,NA,NA,NA
 ph-bot,sea_water_ph_reported_on_total_scale,pH on Bottom (z_b),1,2,NA,NA,NA,NA,NA
-phydiaz,mole_content_of_diazotrophs_expressed_as_carbon_in_sea_water,Mole Content of Diazotrophs expressed as Carbon in sea water,mol m-3,3,NA,NA,NA,NA,NA
+phydiaz,mole_content_of_diazotrophs_expressed_as_carbon_in_sea_water,Mole Concentration of Diazotrophs expressed as Carbon in sea water,mol m-3,3,NA,NA,NA,NA,NA
 vo,sea_water_y_velocity,Sea Water Y Velocity,m s-1,3,NA,NA,NA,NA,NA
 siconc,sea_ice_area_fraction,Sea Ice Area Fraction,%,2,NA,NA,NA,NA,NA
 intpppico,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_picophytoplankton,Net Primary Mole Productivity of Carbon by Picophytoplankton,mol m-2 s-1,2,NA,NA,NA,NA,NA
