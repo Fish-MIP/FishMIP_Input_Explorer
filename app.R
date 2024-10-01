@@ -2,6 +2,7 @@
 library(arrow)
 library(shiny)
 library(shinyWidgets)
+library(shinycustomloader)
 library(readr)
 library(bslib)
 library(stringr)
@@ -40,12 +41,8 @@ maps_files <- file.path(fishmip_dir, "maps_data")
 ts_files <- file.path(fishmip_dir, "ts_data")
 
 # Getting list of all files within folders
-# woa_maps <- list.files("/rd/gem/public/fishmip/WOA_data/regional/climatology", 
-                        # full.names = T)
 woa_maps <- "/rd/gem/public/fishmip/WOA_data/regional/climatology"
-woa_ts <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/comp_clim"
-# woa_ts <- list.files("/rd/gem/public/fishmip/WOA_data/regional/monthly/comp_clim", 
-#                      full.names = T)
+woa_ts <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/comp_clim/"
 
 # Loading map of the world
 world <- ne_countries(returnclass = "sf", scale = "medium")
@@ -75,17 +72,7 @@ prettymap_theme <- list(geom_tile(),
                               legend.text = element_text(size = 15), 
                               legend.title = element_text(size = 15)))
 
-prettyts_theme <- list(geom_line(aes(color = "area weighted monthly mean")),
-                       geom_smooth(aes(color = "linear temporal trend")),
-                       scale_color_manual(breaks = 
-                                            c("area weighted monthly mean", 
-                                              "linear temporal trend"),
-                                          values = c("#004488", "#bb5566")),
-                       scale_x_date(date_labels = "%b-%Y", 
-                                    date_breaks = "24 months",
-                                    expand = expansion(0.02)),
-                       guides(color = guide_legend(title = element_blank())),
-                       theme_bw(),
+prettyts_theme <- list(theme_bw(),
                        theme(axis.text.y = element_text(size = 14),
                              axis.text.x = element_text(angle = 45, vjust = 1, 
                                                         hjust = 1, size = 14),
@@ -164,13 +151,13 @@ ui <- fluidPage(
                           h1("Regional Climate Forcing Data Explorer",
                              style = "color: #095c9e; background-color:#f3f3f3; 
                              border:1.5px solid #c9d5ea; 
-                            padding-left: 15px; padding-bottom: 10px; 
-                            padding-top: 10px;
-                            text-align: center; font-weight: bold")),
+                             padding-left: 15px; padding-bottom: 10px; 
+                             padding-top: 10px;
+                             text-align: center; font-weight: bold")),
              windowTitle = "FishMIP Regional Climate Forcing Data Explorer"),
   ## Model tab -----------------------------------------------------------------
   tabsetPanel(
-    tabPanel("Model outputs",
+    tabPanel("GFDL model outputs",
              sidebarLayout(
                sidebarPanel(
                  h4(strong("Instructions:")),
@@ -185,7 +172,8 @@ ui <- fluidPage(
                  p("2. Select an environmental variable:"),
                  selectInput(inputId = "variable_gfdl", 
                              label = NULL,
-                             choices = sort(var_metadata$long_name.gfdl)),
+                             choices = sort(var_metadata$long_name.gfdl),
+                             selected = "Sea Surface Temperature"),
                  
                  # Select depth (if available)
                  selectizeInput(inputId = "depth_gfdl",
@@ -210,14 +198,18 @@ ui <- fluidPage(
                    tabPanel("Climatological map",
                             mainPanel(
                               br(), 
-                              plotOutput(outputId = "map_gfdl", width = "100%"))
+                              withLoader(
+                                plotOutput(outputId = "map_gfdl", 
+                                           width = "100%"),
+                                type = "html",
+                                loader = "myloader"))
                    ),
                    tabPanel("Time series plot",
                             mainPanel(
                               br(), 
                               plotOutput(outputId = "ts_gfdl", 
                                                width = "100%"))
-                   )
+                   ),
                  )
                )
              )
@@ -262,13 +254,24 @@ ui <- fluidPage(
                  tabsetPanel(
                    tabPanel("Climatological map", 
                             mainPanel(
-                              br(), plotOutput(outputId = "map_WOA", 
-                                               width = "100%"))
+                              br(), 
+                              withLoader(
+                                plotOutput(outputId = "map_WOA", 
+                                               width = "100%"),
+                                type = "html",
+                                loader = "myloader"))
                    ),
                    tabPanel("Time series plot",
                             mainPanel(
                               br(), plotOutput(outputId = "ts_WOA", 
-                                               width = "100%"))
+                                               width = "100%"),
+                              br(),
+                              br(),
+                              br(),
+                              br(),
+                              strong("Note: "), "The grey ribbon in the plot 
+                              above shows the spatial variance in the variable
+                              of interest.")
                    )
                  )
                )
@@ -476,51 +479,48 @@ server <- function(input, output, session) {
   })
   
   observeEvent(gfdl_data(), {
-    updateSelectizeInput(session, "depth_gfdl", 
+    updateSelectizeInput(session, "depth_gfdl",
                          choices = gfdl_data()$depths, server = T)
     })
 
   gfdl_maps_df <- reactive({
+    df <- gfdl_data()$df_map
     if(input$depth_gfdl != "Not available"){
-      df <- gfdl_data()$df_map |> 
+      df <- df |>
         filter(depth_bin_m == input$depth_gfdl)
-    }else{
-      df <- gfdl_data()$df_map
     }
+    
+    range_map <- range_map(df, input$region_gfdl)
+
     title <- paste0("Climatological mean (1961-2010) ",
                         input$variable_gfdl) |>
       str_to_sentence()
-    
-    return(list(df = df,
+
+    return(list(df = range_map$df,
+                ylim = range_map$ylims,
+                xlim = range_map$xlims,
                 title = title))
   })
-  
+
   # Creating first plot
   output$map_gfdl <- renderPlot({
     df <- gfdl_maps_df()$df
     
-    # Adjusting map proportions
-    validate(
-      need(df$lon != "",
-           # display custom message
-           "Please wait while we render the map for your chosen area.")
-    )
-    range_map <- range_map(df, input$region_gfdl)
-
     # Plotting map
-    ggplot(range_map$df, aes(x = lon, y = lat, fill = vals)) +
+    ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
-      coord_sf(ylim = range_map$ylims, xlim = range_map$xlims, expand = F) +
+      coord_sf(ylim = gfdl_maps_df()$ylim, xlim = gfdl_maps_df()$xlim,
+               expand = F) +
       guides(fill = guide_colorbar(title = lookup_file()$cb_lab,
                                    title.position = "top", title.hjust = 0.5))+
       labs(title = str_wrap(gfdl_maps_df()$title, 65))
   },
   height = 600, width = 750)
-  
-  
+
+
   gfdl_ts_df <- reactive({
     if(input$depth_gfdl != "Not available"){
-      df <- gfdl_data()$df_ts |> 
+      df <- gfdl_data()$df_ts |>
         filter(depth == input$depth_gfdl)
     }else{
       df <- gfdl_data()$df_ts
@@ -528,7 +528,7 @@ server <- function(input, output, session) {
     title <- paste0("Area weighted mean (1961-2010) for ",
                     input$variable_gfdl) |>
       str_to_sentence()
-    
+
     return(list(df = df,
                 title = title))
   })
@@ -538,9 +538,17 @@ server <- function(input, output, session) {
 
     # Calculate spatially weighted average of variables selected
     ggplot(df, aes(x = time, y = vals)) +
+      geom_line(aes(color = "area weighted monthly mean")) +
+      geom_smooth(aes(color = "linear temporal trend")) +
+      scale_color_manual(breaks = c("area weighted monthly mean",
+                                    "linear temporal trend"),
+                         values = c("#004488", "#bb5566")) +
+      scale_x_date(date_labels = "%b-%Y", date_breaks = "24 months",
+                   expand = expansion(0.02)) +
+      guides(color = guide_legend(title = element_blank())) +
       prettyts_theme +
       labs(title = str_wrap(gfdl_ts_df()$title, 60),
-           y = str_wrap(lookup_file()$cb_lab, 50), x = "Date")
+           y = str_wrap(lookup_file()$cb_lab, 50))
   }, height = 500, width = 800)
 
   # Loading download dataset
@@ -575,17 +583,17 @@ server <- function(input, output, session) {
   # Select correct file based on inputs from region and variable selected
   lookup_woa <- reactive({
     #Get short region name
-    reg <- input$region_WOA |> 
-      str_to_lower() |> 
-      str_replace_all(" ", "-") |> 
+    reg <- input$region_WOA |>
+      str_to_lower() |>
+      str_replace_all(" ", "-") |>
       str_replace_all("'", "")
-    
+
     #Get variable metadata
-    var_meta <- var_metadata |> 
-      select(contains("woa")) |> 
-      distinct() |> 
-      filter(standard_name.woa == input$variable_WOA) 
-    
+    var_meta <- var_metadata |>
+      select(contains("woa")) |>
+      distinct() |>
+      filter(standard_name.woa == input$variable_WOA)
+
     #Variable short name
     var <- var_meta$woa_name_code
     ## Create title for colour bar
@@ -594,24 +602,25 @@ server <- function(input, output, session) {
     }else{
       cb_lab <- paste0(input$variable_WOA, " (", var_meta$units.woa, ")")
     }
-    
+
     #Create keywords to search files
-    search_file <- paste0("_", reg, "_.*_", var)
-    
+    search_file <- paste0("_", reg, "_.*mean.*_", var)
+
     #Return items
     return(list(search_file = search_file,
                 cb_lab = cb_lab))
   })
-  
+
   woa_data <- reactive({
     #Loading maps dataset
-    df_map <- list.files(woa_maps, pattern = lookup_woa()$search_file, 
-                         full.names = T) |> 
+    df_map <- list.files(woa_maps, pattern = lookup_woa()$search_file,
+                         full.names = T) |>
       read_parquet(col_select = lat:vals)
     #Loading time series dataset
-    # df_ts <- list.files(woa_ts, pattern = lookup_woa()$search_file, 
-    #                     full.names = T) |> 
-    #   read_parquet(col_select = time:vals)
+    df_ts <- list.files(woa_ts, pattern = lookup_woa()$search_file,
+                        full.names = T) |>
+      read_parquet(col_select = month:weighted_sd) |>
+      mutate(month = factor(month, levels = month.name, ordered = T))
     #Getting depth information
     if("depth" %in% colnames(df_map)){
       depths <- unique(df_map$depth)
@@ -619,43 +628,37 @@ server <- function(input, output, session) {
       depths <- "Not available"
     }
     return(list(df_map = df_map,
-                # df_ts = df_ts,
+                df_ts = df_ts,
                 depths = depths))
   })
-  
+
   observeEvent(woa_data(), {
-    updateSelectizeInput(session, "depth_woa", 
+    updateSelectizeInput(session, "depth_woa",
                          choices = woa_data()$depths, server = T)
   })
-  
+
   woa_maps_df <- reactive({
     if(input$depth_woa != "Not available"){
-      df <- woa_data()$df_map |> 
+      df <- woa_data()$df_map |>
         filter(depth == input$depth_woa)
     }else{
       df <- woa_data()$df_map
     }
-    title <- paste0("Climatological mean (1961-2010) ",
-                    input$variable_woa) |>
+    title <- paste0("Climatological mean (1981-2010) ",
+                    input$variable_WOA) |>
       str_to_sentence()
-    
+
     return(list(df = df,
                 title = title))
   })
-  
-  
+
   # Creating first plot
   output$map_WOA <- renderPlot({
     df <- woa_maps_df()$df
-    
+
     # Adjusting map proportions
-    validate(
-      need(df$lon != "",
-           # display custom message
-           "Please wait while we render the map for your chosen area.")
-    )
     range_map <- range_map(df, input$region_WOA)
-    
+
     # Plotting map
     ggplot(range_map$df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
@@ -666,62 +669,34 @@ server <- function(input, output, session) {
   },
   height = 600, width = 750)
 
-  
-  
-  # output$map_WOA <- renderPlot({
-  # 
-  #   # Plotting map
-  #   ggplot(df, aes(x = lon, y = lat, fill = vals)) +
-  #     prettymap_theme +
-  #     guides(fill = guide_colorbar(title = map_WOA_data()$figlabel,
-  #                                  title.position = "top", title.hjust = 0.5)) +
-  #     coord_sf(ylim = ylims, xlim = xlims, expand = F) +
-  #     labs(title = map_WOA_data()$title, x = "Longitude", y = "Latitude")
-  # }, height = 500, width = 750)
-  
-  
-  
-  # ts_WOA_data <- reactive({
-  #   df <- read_parquet(select_WOA_file()) |>
-  #     filter(!is.na(value)) |>
-  #     mutate(date = as.Date(time)) |>
-  #     select(-depth, -variable, -time) |>
-  #     group_by(date) |>
-  #     reframe(value = mean(value))
-  # 
-  #   if (input$variable_WOA == "Temperature") {
-  #     ylab <- expression("Temperature ("*degree*"C)")
-  #   } else {
-  #     ylab <- "Salinity (ppm)"
-  #   }
-  # 
-  #   title <- paste0("Mean ", input$variable_WOA) |>
-  #     str_to_sentence()
-  #   ts_title <- paste0(title, " from World Ocean Atlas (1981-2010), ",
-  #                      input$region_WOA, " region")
-  # 
-  #   return(list(
-  #     df = df,
-  #     title = ts_title,
-  #     xlab = "Month",
-  #     ylab = ylab
-  #   ))
-  # })
+  woa_ts_df <- reactive({
+    if(input$depth_woa != "Not available"){
+      df <- woa_data()$df_ts |>
+        filter(depth == input$depth_woa)
+    }else{
+      df <- woa_data()$df_ts
+    }
+    title <- paste0("Area weighted climatological monthly mean (1981-2010) for ",
+                    input$variable_WOA) |>
+      str_to_sentence()
 
-  
+    return(list(df = df,
+                title = title))
+  })
 
-  # output$ts_WOA <- renderPlot({
-  #   df <- ts_WOA_data()$df
-  # 
-  #   ggplot(df, aes(x = date, y = value)) +
-  #     geom_line() +
-  #     prettymap_theme +
-  #     scale_x_date(date_labels = "%b", date_breaks = "1 month",
-  #                  expand = expansion(0.02)) +
-  #     labs(title = ts_WOA_data()$title,
-  #          x = ts_WOA_data()$xlab,
-  #          y = ts_WOA_data()$ylab)
-  # }, height = 500, width = 750)
+
+  output$ts_WOA <- renderPlot({
+    df <- woa_ts_df()$df
+
+    ggplot(df, aes(x = month, y = weighted_mean, group = 1)) +
+      geom_line(color = "#004488") +
+      geom_ribbon(aes(ymin = weighted_mean-weighted_sd,
+                      ymax = weighted_mean+weighted_sd),
+                  alpha = 0.2, color = "grey") +
+      prettyts_theme +
+      labs(title = str_wrap(woa_ts_df()$title, 60),
+           y = str_wrap(lookup_woa()$cb_lab, 50))
+  }, height = 500, width = 800)
 }
 #   
 #   # output$download_WOA <- downloadHandler(
