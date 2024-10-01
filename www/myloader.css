@@ -1,0 +1,72 @@
+@font-face {
+  font-family: Origin;
+  src: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/4273/origin-extrabold-webfont.woff);
+}
+
+.myloader {
+  align-items: center;
+  background-color: #008cba;
+  height: 400px;
+}
+
+.myloader > h1 {
+  position: absolute;
+  top: 40%;
+  left: 30%;
+  display: flex;
+  justify-content: center;
+  font-family: Origin, Helvetica Light, sans-serif;
+  color: #fff;
+  background-image: linear-gradient(
+    rgb(255, 242, 181) 28%,
+    rgb(77, 77, 77) 40%,
+    rgb(255, 242, 181) 54%
+  );
+  -webkit-background-clip: text;
+  letter-spacing: 0.5rem;
+}
+
+.myloader > h1 > span::before {
+  content: "";
+  animation-name: animate;
+  animation-duration: 10s;
+  animation-direction: normal;
+  animation-fill-mode: forwards;
+  padding-left: 10px;
+}
+
+@keyframes animate {
+  0% {
+    content: "Plotting";
+  }
+  10% {
+    content: "Plotting.";
+  }
+  20% {
+    content: "Plotting..";
+  }
+  30% {
+    content: "Plotting...";
+  }
+  40% {
+    content: "Plotting....";
+  }
+  50% {
+    content: "Plotting.....";
+  }
+  60% {
+    content: "Plotting......";
+  }
+  70% {
+    content: "Plotting.......";
+  }
+  80% {
+    content: "Plotting........";
+  }
+  90% {
+    content: "Plotting.........";
+  }
+  100% {
+    content: "Almost there!";
+  }
+}
