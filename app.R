@@ -11,7 +11,6 @@ library(dplyr)
 library(rnaturalearth)
 library(tidyr)
 library(sf)
-library(plotly)
 library(ggplot2)
 options(scipen = 99)
 
