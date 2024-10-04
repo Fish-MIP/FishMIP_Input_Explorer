@@ -19,7 +19,7 @@ authors:
 - name: "Fisheries and Marine Ecosystem Model Intercomparison Project (Fish-MIP)"
 
 title: "FishMIP input explorer for regional ecosystem modellers"
-version: 1.0.0
+version: 0.1.0-beta
 doi: TBA
 date-released: TBA
 url: "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/"
