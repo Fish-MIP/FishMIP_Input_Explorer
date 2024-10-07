@@ -12,6 +12,7 @@ library(rnaturalearth)
 library(tidyr)
 library(sf)
 library(ggplot2)
+library(Rarr)
 options(scipen = 99)
 
 # Setting up  -------------------------------------------------------------
@@ -91,7 +92,7 @@ prettyts_theme <- list(theme_bw(),
                                                         hjust = 1, size = 14),
                              axis.title.y = element_text(size = 15), 
                              axis.title.x = element_blank(),
-                             plot.title = element_text(hjust = 0.5, size = 15),
+                             plot.title = element_text(hjust = 0.5, size = 18),
                              legend.position = "bottom", 
                              legend.text = element_text(size = 18)))
 
@@ -208,7 +209,7 @@ ui <- fluidPage(
                  p(em("Optional: "), "Get a copy of the data used to create 
                    these plots by clicking the 'Download' button below."),
                  # Download option
-                 downloadButton(outputId = "download_data_gfdl", 
+                 downloadButton(outputId = "download_gfdl", 
                                 label = "Download")
                ),
                mainPanel(
@@ -231,6 +232,7 @@ ui <- fluidPage(
                  br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map",
+                            verbatimTextOutput("test"),
                             mainPanel(
                               br(), 
                               withLoader(
@@ -284,7 +286,8 @@ ui <- fluidPage(
                      monthly mean of observations."),
                  
                  p(em("Optional: "), "Get a copy of the data used to create 
-                   these plots by clicking the 'Download' button below."),
+                   climatological maps by clicking the 'Download' button 
+                   below."),
                  # Download option
                  downloadButton(outputId = "download_WOA", label = "Download")
                ),
@@ -380,12 +383,7 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), 
                  " tab to see the difference in climatological monthly 
                  area-weighted mean (1981-2010) between the model output and 
-                 observations."),
-                 p(em("Optional: "), "Get a copy of the data used to create 
-                   these plots by clicking the 'Download' button below."),
-                 # Download option
-                 downloadButton(outputId = "download_data_compare", 
-                                label = "Download")
+                 observations.")
                ),
                mainPanel(
                  br(),
@@ -404,7 +402,6 @@ ui <- fluidPage(
                    tabPanel("Climatological maps",
                             mainPanel(
                               br(), 
-                              verbatimTextOutput("test"),
                               withLoader(
                                 plotOutput(outputId = "map_compare", 
                                             width = "140%"),
@@ -667,32 +664,51 @@ server <- function(input, output, session) {
            y = str_wrap(lookup_file()$cb_lab, 50))
   }, height = 500, width = 800)
 
-  # Loading download dataset
-  # gfdl_down_data <- reactive({
-  #   # filestring <- str_split(select_model_file()$map, "/")
-  #   # filestring <- filestring[[1]][length(filestring[[1]])]
-  # 
-  #   # Get full file path to relevant file
-  #   down_filepath <- select_model_file()$download#file.path(download_dir, filestring)
-  #   if(str_detect(down_filepath, "zarr$")){
-  #     down_file <- 
-  #   }
-  # 
-  #   # Load file
-  #   down_df <- read_csv(down_file, show_col_types = FALSE)
-  #   return(list(
-  #     filestring = basename(down_file),#filestring,
-  #     down_file = down_file
-  #   ))
-  # })
-  # 
-  # output$download_data <- downloadHandler(
-  #   filename = function(){basename(select_model_file()$download)},
-  #   # Creating name of download file based on original file name
-  #   content = function(file){
-  #     down_df <- read_parquet(select_model_file()$download)
-  #     write_csv(down_df, file)}
-  # )
+  #Loading download dataset
+  gfdl_down_path <- reactive({
+    file_path <- str_subset(download_files, lookup_file()$search_file)
+    if(str_detect(file_path, "parquet$")){
+      file_out <- basename(file_path) |> 
+        str_replace(".parquet", ".csv")
+    }else{
+      file_out <- basename(file_path)
+    }
+    return(list(file_path = file_path,
+                file_out = file_out))
+  })
+  
+  
+  gfdl_down_data <- reactive({
+    file_path <- gfdl_down_path()$file_path
+    if(str_detect(file_path, "parquet$")){
+      df <- read_parquet(file_path)
+    }else{
+      df <- file.path(file_path, input$variable_gfdl) |> 
+        read_zarr_array()
+    }
+    return(df)
+  })
+
+  output$download_gfdl <- downloadHandler(
+    filename = function(){
+      gfdl_down_path()$file_out
+      },
+    # Creating name of download file based on original file name
+    content = function(file){
+      df <- gfdl_down_data()
+      if(str_detect(file, "csv$")){
+        write_csv(df, file)
+      }else{
+        write_zarr_array(x = df, zarr_array_path = file,
+                         chunk_dim = dim(df))
+      }}
+  )
+  
+  output$test <-  renderPrint({
+    df <- gfdl_down_data()
+    print(gfdl_down_path()$file_out)
+    print(head(df))
+  })
 
   ## Observations tab ----------------------------------------------------------
 
@@ -841,15 +857,26 @@ server <- function(input, output, session) {
       labs(title = str_wrap(title, 65))
   }, height = 600, width = 750)
   
+  # Getting data ready for download
+  woa_down_data <- reactive({
+    file_path <- list.files(woa_maps, pattern = lookup_woa()$search_file,
+                            full.names = T)
+    df <- read_parquet(file_path)
+    file_out <- basename(file_path) |> 
+        str_replace(".parquet", ".csv")
+    return(list(df = df,
+                file_path = file_out))
+  })
 
-
-#   # output$download_WOA <- downloadHandler(
-#   #   filename = function(){
-#   #     str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
-#   #     },
-#   #   # Creating name of download file based on original file name
-#   #   content = function(file){write_csv(x = map_WOA_data()$df, file = file)}
-#   # )
+  output$download_WOA <- downloadHandler(
+    filename = function(){
+      woa_down_data()$file_path
+      },
+    # Creating name of download file based on original file name
+    content = function(file){
+      write_csv(woa_down_data()$df, file)
+      }
+  )
 
   ## Comparison tab ----------------------------------------------------------
   lookup_comp <- reactive({
@@ -966,160 +993,20 @@ server <- function(input, output, session) {
   output$ts_compare <- renderPlot({
     df <- comp_ts_df()$df
     
-    ggplot(df, aes(x = month, y = vals, group = type, colour = type)) +
+    ggplot(df, aes(x = month, y = vals, group = type, colour = type,
+                   linetype = type)) +
       geom_line(linewidth = 1) +
-      scale_color_manual(values = c("gfdl" = "#997700", 
+      scale_colour_manual(values = c("gfdl" = "#997700", 
                                     "woa" = "#994455"),
                          labels = c("GFDL-MOM6-COBALT2", "WOA2023")) +
+      scale_linetype_manual(values = c("gfdl" = "twodash",
+                                       "woa" = "solid"),
+                            labels = c("GFDL-MOM6-COBALT2", "WOA2023")) +
       prettyts_theme +
       labs(title = str_wrap(comp_ts_df()$title, 60),
            y = str_wrap(lookup_comp()$cb_lab, 50))+
       theme(legend.title = element_blank())
   }, height = 500, width = 800)
-  
-  
-  
-#   
-#   select_compare_data <- reactive({
-#     map_WOA <- select_compare_file()$df_WOA |> 
-#       filter(!is.na(value)) |> 
-#       select(-depth, -variable) |> 
-#       group_by(lat, lon) |> 
-#       reframe(value = mean(value)) |> 
-#       mutate(source = "WOA observations")
-#     
-#     map_gfdl <- select_compare_file()$map_gfdl |> 
-#       mutate(value = vals,
-#              source = "GFDL-MOM6-COBALT2 model output") |> 
-#       select(-vals)
-#     
-#     map_compare = rbind(map_gfdl, map_WOA)
-#     
-#     map_compare <- map_compare |> 
-#       pivot_wider(names_from = source, 
-#                   values_from = value) |> 
-#       mutate(percent_diff = round((( `GFDL-MOM6-COBALT2 model output` - `WOA observations`) / `WOA observations`) * 100, 2))
-#     
-#     ts_gfdl <- select_compare_file()$ts_gfdl |> 
-#       mutate(value = vals,
-#              month = month(date)) |> 
-#       group_by(month) |> 
-#       reframe(value = mean(value)) |> 
-#       mutate(source = "GFDL-MOM6-COBALT2 model output")
-#     
-#     ts_WOA <- select_compare_file()$df_WOA |> 
-#       filter(!is.na(value)) |> 
-#       mutate(date = as.Date(time),
-#              month = month(date)) |> 
-#       group_by(month) |> 
-#       reframe(value = mean(value)) |> 
-#       mutate(source = "WOA observations")
-#     
-#     ts_compare = rbind(ts_gfdl, ts_WOA) |> 
-#       pivot_wider(names_from = source, 
-#                   values_from = value) |> 
-#       mutate(percent_diff = round((( `GFDL-MOM6-COBALT2 model output` - `WOA observations`) / `WOA observations`) * 100, 2))
-#     
-#     ylab <- paste0("% difference in ",input$variable_compare)
-#     title <- paste0("Difference in ", input$variable_compare) |> 
-#       str_to_sentence()
-#     title <- paste0(title, 
-#                     " between model outputs (GFDL-MOM6-COBALT2) \n and observations (WOA), ",
-#                     input$region_compare, " region")
-# 
-#     return(list(
-#       map_compare = map_compare, 
-#       map_title = title,
-#       map_figlabel = ylab,
-#       map_xlab = "Longitude",
-#       map_ylab = "Latitude",
-#       ts_compare = ts_compare,
-#       ts_title = title,
-#       ts_figlabel = NA,
-#       ts_xlab = "Month",
-#       ts_ylab = ylab
-#     ))
-#   })
-#   
-#   output$map_compare <- renderPlotly({
-#     df <- select_compare_data()$map_compare 
-#     
-#     # Compare processing goes here
-#     
-#     # Adjusting map proportions
-#     minx <- min(df$lon)
-#     maxx <- max(df$lon)
-#     miny <- min(df$lat)
-#     maxy <- max(df$lat)
-#     
-#     # Calculate range
-#     rangex <- abs(abs(maxx)-abs(minx))
-#     rangey <- abs(abs(maxy)-abs(miny))
-#     
-#     # Check if map crosses international date line
-#     if(rangex == 0 & str_detect(input$region_gfdl, "Southern Ocean", 
-#                                 negate = T)){
-#       df <- df |>
-#         mutate(lon = lon%%360)
-#       minx <- min(df$lon)
-#       maxx <- max(df$lon)
-#       rangex <- abs(abs(maxx)-abs(minx))
-#     }
-#     
-#     xlims <- c(minx, maxx)
-#     ylims <- c(miny, maxy)
-#     
-#     p <- ggplot(df, aes(x = lon, y = lat, fill = percent_diff)) +
-#       geom_tile() +
-#       coord_cartesian() +
-#       scale_fill_viridis_c() +
-#       #facet_grid(cols = vars(source)) +
-#       geom_sf(inherit.aes = F, data = world, lwd = 0.25, color = "black", 
-#               show.legend = F) +
-#       guides(fill = guide_colorbar(title = select_compare_data()$map_figlabel, 
-#                                    title.position = "top", title.hjust = 0.5)) +
-#       coord_sf(xlims, ylims) +
-#       # theme_minimal() +
-#       # prettymap_theme +
-#       labs(title = select_compare_data()$map_title,
-#            x = select_compare_data()$map_xlab,
-#            y = select_compare_data()$map_ylab) +
-#       theme(legend.key.size = unit(0.5, "cm"),    # Decrease size of legend keys
-#             legend.text = element_text(size = 8),
-#             panel.border = element_blank(),
-#             panel.grid.major = element_blank(),
-#             panel.grid.minor = element_blank()) +
-#       theme_classic() +
-#       theme(text = element_text(colour = "black", size = 8),
-#             # legend.position = "bottom", 
-#             # legend.key.width = unit(3.5, "cm"),
-#             plot.title = element_text(size = 13, hjust = 0.5),
-#             axis.text.y = element_text(hjust = 0.5, vjust = 0.5), 
-#             axis.text.x = element_text(angle = 45, hjust = 0.5, vjust = 0.5),
-#       )
-#     ggplotly(p)
-#     
-#   })
-#   
-#   output$ts_compare <- renderPlot({
-#     df <- select_compare_data()$ts_compare
-#     
-#     ggplot(df, aes(x = month, y = percent_diff)) +
-#       geom_line() +
-#       prettymap_theme +
-#       scale_x_continuous(breaks = 1:12, labels = month.abb) +
-#       ggtitle(label = select_compare_data()$ts_title) +
-#       labs(x = select_compare_data()$ts_xlab, y = select_compare_data()$ts_ylab)
-#   }, height = 500, width = 750)
-#   
-#   # output$download_compare <- downloadHandler(
-#   #   filename = function(){
-#   #     str_c("downloaded_", select_WOA_file()$fname, ".csv") # Needs some trimming, currently gives full path
-#   #   },
-#   #   # Creating name of download file based on original file name
-#   #   content = function(file){write_csv(x = map_WOA_data()$data, file = file)}
-#   # )
-#   
 }
 
 shinyApp(ui = ui, server = server)
