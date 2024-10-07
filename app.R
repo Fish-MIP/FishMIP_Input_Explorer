@@ -232,7 +232,6 @@ ui <- fluidPage(
                  br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map",
-                            verbatimTextOutput("test"),
                             mainPanel(
                               br(), 
                               withLoader(
@@ -683,8 +682,7 @@ server <- function(input, output, session) {
     if(str_detect(file_path, "parquet$")){
       df <- read_parquet(file_path)
     }else{
-      df <- file.path(file_path, input$variable_gfdl) |> 
-        read_zarr_array()
+      df <- file_path
     }
     return(df)
   })
@@ -699,16 +697,9 @@ server <- function(input, output, session) {
       if(str_detect(file, "csv$")){
         write_csv(df, file)
       }else{
-        write_zarr_array(x = df, zarr_array_path = file,
-                         chunk_dim = dim(df))
+        file.copy(df, file)
       }}
   )
-  
-  output$test <-  renderPrint({
-    df <- gfdl_down_data()
-    print(gfdl_down_path()$file_out)
-    print(head(df))
-  })
 
   ## Observations tab ----------------------------------------------------------
 
