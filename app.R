@@ -12,7 +12,6 @@ library(rnaturalearth)
 library(tidyr)
 library(sf)
 library(ggplot2)
-library(Rarr)
 options(scipen = 99)
 
 # Setting up  -------------------------------------------------------------
@@ -24,7 +23,7 @@ region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id,
 # Getting names of environmental variables available with equivalent from WOA
 var_metadata <- read_csv("www/woa_gfdl_var_keys.csv", show_col_types = F) 
 
-#GFDL variables - named vector
+  #GFDL variables - named vector
 gfdl_variables <- var_metadata |> 
   select(long_name.gfdl, gfdl_name) |> 
   arrange(long_name.gfdl) |> 
@@ -214,6 +213,7 @@ ui <- fluidPage(
                ),
                mainPanel(
                  br(),
+                 # verbatimTextOutput("test"),
                  "Figures shown in this tab use the ", 
                  em("Observation-based climate related forcing"), " (obsclim) 
                  outputs from the GFDL-MOM6-COBALT2 model. These outputs were
@@ -442,7 +442,7 @@ ui <- fluidPage(
                  marine ecosystem model."),
                br(),
                img(src = "FishMIP_regional_model_workflow.png", height = 600,
-                   width = 725, style = "display: block; 
+                   width = 715, style = "display: block; 
                                           margin-left: auto;
                                           margin-right: auto"),
                br(),
@@ -462,7 +462,27 @@ ui <- fluidPage(
                                           margin-right: auto"),
                br(),
                h3(strong("How should I use this tool?")),
-               p("This site has three main tabs."),
+               p("This site has three main tabs:"),
+               p("1.", em(strong("GFDL model outputs:"))),
+               p("2.", em(strong("World Ocean Atlas 2023 data:"))),
+               p("3.", em(strong("Model outputs against observations:"))),
+               br(),
+               p("You can download data that has been subsetted for the 
+                 regional model of your interest in the first two tabs. Note 
+                 that all WOA 2023 data are available for download as ",
+                 em("csv"), " files. GFDL outputs that do not have a depth 
+                 component (i.e., surface or bottom data) are also available as
+                 ", em("csv"), " files. However, due to the size of GFDL outputs 
+                 with a depth component (e.g. temperature of the water column), 
+                 these data are only available for download as ", em("zip"), 
+                 " (i.e., compressed) folders containing ", em("zarr"), " files
+                 to speed up download times. A ", em("arr"), " file is a cloud
+                 optimised gridded data file format similar to ", em("netcdf"),
+                 " files. If you use Python, we recommend you use the ", 
+                 em("xarray"), " library to open these files. If you use R, we 
+                 recommend the ", em("Rarrr"), " library. For instructions on 
+                 how to load these files in R, refer to this example ",
+                 tags$a(href = "TBA", "TBA.")),
                br(),
                h3(strong("How should I cite data from this site?")),
                p("You can download the data used to create the plots shown in 
@@ -694,12 +714,28 @@ server <- function(input, output, session) {
     # Creating name of download file based on original file name
     content = function(file){
       df <- gfdl_down_data()
+      id <- showNotification("Preparing Download...", type = "message", 
+                             duration = NULL, closeButton = F)
+      on.exit(removeNotification(id), add = TRUE)
+      Sys.sleep(1)
+      
+      notify("Getting everything together...", id = id)
+      Sys.sleep(1)
+      
+      notify("Almost there...", id = id)
+      Sys.sleep(1)
       if(str_detect(file, "csv$")){
         write_csv(df, file)
       }else{
         file.copy(df, file)
-      }}
+      }
+      }
   )
+  
+  # output$test <- renderPrint({
+  #   c(gfdl_down_data(),
+  #   gfdl_down_path()$file_out)
+  #   })
 
   ## Observations tab ----------------------------------------------------------
 
@@ -865,8 +901,19 @@ server <- function(input, output, session) {
       },
     # Creating name of download file based on original file name
     content = function(file){
+      id <- showNotification("Preparing Download...", type = "message", 
+                             duration = NULL, closeButton = F)
+      on.exit(removeNotification(id), add = TRUE)
+      Sys.sleep(1)
+      
+      notify("Getting everything together...", id = id)
+      Sys.sleep(1)
+      
+      notify("Almost there...", id = id)
+      Sys.sleep(1)
+      
       write_csv(woa_down_data()$df, file)
-      }
+    }
   )
 
   ## Comparison tab ----------------------------------------------------------
