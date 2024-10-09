@@ -186,7 +186,7 @@ ui <- fluidPage(
                  selectInput(inputId = "variable_gfdl", 
                              label = NULL,
                              choices = gfdl_variables,
-                             selected = "Sea Surface Temperature"),
+                             selected = "tos"),
                  
                  # Depth drop down only appears for variables that contain this
                  # information
@@ -285,8 +285,8 @@ ui <- fluidPage(
                      monthly mean of observations."),
                  
                  p(em("Optional: "), "Get a copy of the data used to create 
-                   climatological maps by clicking the 'Download' button 
-                   below."),
+                   climatological maps as a csv file by clicking the 'Download' 
+                   button below."),
                  # Download option
                  downloadButton(outputId = "download_WOA", label = "Download")
                ),
@@ -304,7 +304,14 @@ ui <- fluidPage(
                  br(), br(),
                  "The maps in this tab show WOA23 data as is, data was extracted
                  within the boundaries of FishMIP regional models and no further
-                 data processing was done.", 
+                 data processing was done. You can download this data using 
+                 the ", em('Download'), " button on the left. Note that if you 
+                 would like to compare WOA23 data to GFDL outputs or any other 
+                 data product, you will need to regrid the WOA23 data to match 
+                 the data you are comparing it to. We have an ",
+                 tags$a(href = "https://github.com/Fish-MIP/processing_WOA_data/blob/main/scripts/P_regridding_woa_data.ipynb",
+                        "example notebook"), " showing you step by step how to 
+                 regrid data.",
                  br(), br(),
                  "For time series plots we weighted the monthly climatology by
                  the area of the grid cells.",
@@ -347,7 +354,7 @@ ui <- fluidPage(
                                            width = "100%"),
                                 type = "html",
                                 loader = "myloader")
-                            ))
+                            )),
                  )
                )
              )
@@ -415,17 +422,7 @@ ui <- fluidPage(
                                            width = "100%"),
                                 type = "html",
                                 loader = "myloader"))
-                   ),
-                   # tags$head(tags$style(type = "text/css", 
-                   # "#loadmessage {
-                   #   position: fixed; bottom: 0px; right: 0px; width: 20%; 
-                   #   padding: 10px 0px 10px 0px;
-                   #   text-align: center; font-weight: bold; font-size: 100%; 
-                   #   color: #fff; background-color: #008cba; z-index: 105;
-                   #   }")),
-                   # conditionalPanel(
-                   #   condition = "$('html').hasClass('shiny-busy')", 
-                   #   tags$div("Loading plot...", id = "loadmessage"))
+                   )
                  )
                )
              )
@@ -466,23 +463,24 @@ ui <- fluidPage(
                p("1.", em(strong("GFDL model outputs"))),
                p("2.", em(strong("World Ocean Atlas 2023 data"))),
                p("3.", em(strong("Model outputs against observations"))),
-               br(),
                p("You can download data that has been subsetted for the 
                  regional model of your interest in the first two tabs. Note 
                  that all WOA 2023 data are available for download as ",
                  em("csv"), " files. GFDL outputs that do not have a depth 
                  component (i.e., surface or bottom data) are also available as
-                 ", em("csv"), " files. However, due to the size of GFDL outputs 
-                 with a depth component (e.g. temperature of the water column), 
-                 these data are only available for download as ", em("zip"), 
-                 " (i.e., compressed) folders containing ", em("Zarr"), " files
+                 ", em("csv"), " files."),
+               p("However, due to the size of GFDL outputs with a depth 
+                 component (e.g. temperature of the water column), these data 
+                 are only available for download as ", em("zip"), " (i.e., 
+                 compressed) folders containing ", em("Zarr"), " files
                  to speed up download times. A ", em("Zarr"), " file is a cloud
                  optimised gridded data file format similar to ", em("netcdf"),
                  " files. If you use Python, we recommend you use the ", 
                  em("xarray"), " library to open these files. If you use R, we 
                  recommend the ", em("Rarrr"), " library. For instructions on 
-                 how to load these files in R, refer to this example ",
-                 tags$a(href = "TBA", "TBA.")),
+                 how to load these files in R, refer to ",
+                 tags$a(href = "https://github.com/Fish-MIP/FishMIP_extracting-data/blob/main/scripts/loading_zarr_files.md", 
+                        "this example.")),
                br(),
                h3(strong("How should I cite data from this site?")),
                p("You can download the data used to create the plots shown in 
