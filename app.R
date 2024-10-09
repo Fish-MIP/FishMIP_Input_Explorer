@@ -437,7 +437,7 @@ ui <- fluidPage(
                h3(strong("About this website")),
                p("This tool allows regional modellers to visualise 
                  environmental data from GFDL-MOM6-COBALT2 and from 
-                 observations to determine if bias correction needs to be 
+                 observations to determine if bias correction (Step 3 below) needs to be 
                  applied to the data prior to its use as forcings of a regional
                  marine ecosystem model."),
                br(),
@@ -463,9 +463,9 @@ ui <- fluidPage(
                br(),
                h3(strong("How should I use this tool?")),
                p("This site has three main tabs:"),
-               p("1.", em(strong("GFDL model outputs:"))),
-               p("2.", em(strong("World Ocean Atlas 2023 data:"))),
-               p("3.", em(strong("Model outputs against observations:"))),
+               p("1.", em(strong("GFDL model outputs"))),
+               p("2.", em(strong("World Ocean Atlas 2023 data"))),
+               p("3.", em(strong("Model outputs against observations"))),
                br(),
                p("You can download data that has been subsetted for the 
                  regional model of your interest in the first two tabs. Note 
@@ -475,8 +475,8 @@ ui <- fluidPage(
                  ", em("csv"), " files. However, due to the size of GFDL outputs 
                  with a depth component (e.g. temperature of the water column), 
                  these data are only available for download as ", em("zip"), 
-                 " (i.e., compressed) folders containing ", em("zarr"), " files
-                 to speed up download times. A ", em("arr"), " file is a cloud
+                 " (i.e., compressed) folders containing ", em("Zarr"), " files
+                 to speed up download times. A ", em("Zarr"), " file is a cloud
                  optimised gridded data file format similar to ", em("netcdf"),
                  " files. If you use Python, we recommend you use the ", 
                  em("xarray"), " library to open these files. If you use R, we 
@@ -491,9 +491,10 @@ ui <- fluidPage(
                  you must cite its use. Please use the following citations:"),
                p("- Fierro-Arcos, D., Blanchard, J. L., Flynn, C., 
                  Ortega Cisneros, K., Reimer, T. (2024). FishMIP input explorer 
-                 for regional ecosystem modellers."),
+                 for regional ecosystem modellers. ", 
+                 tags$a(href = "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/")),
                p("When using the data products in a publication, please include 
-               the following citation in addition to the data product citations 
+               the following citation in addition to the data product citation 
                provided above:"),
                p("- Ortega-Cisneros, K., Fierro-Arcos, D. Lindmark, M., et al.
                  (Preprint). An Integrated Global-to-Regional Scale Workflow for
@@ -501,7 +502,7 @@ ui <- fluidPage(
                  Open Archive. DOI:", 
                  tags$a(href ="http://dx.doi.org/10.22541/essoar.171587234.44707846/v1",
                  "10.22541/essoar.171587234.44707846/v1")),
-               p("As a condition of using GFDL-MOM6-COBALT2 model outputs, you 
+               p("When using GFDL-MOM6-COBALT2 model outputs, you 
                  also need to include the following citation:"),
                p("- Xiao Liu, Charles Stock, John Dunne, Minjin Lee, Elena 
                  Shevliakova, Sergey Malyshev, Paul C.D. Milly, Matthias Büchner
@@ -515,7 +516,7 @@ ui <- fluidPage(
                "product documentation"), " for the most appropriate citation."),
                br(),
                h3(strong("How can I contact you?")),
-               p("If you are a regional ecosystem modeller and would like to be 
+               p("If you are interested in our regional modelling work and would like to be 
                  part of the FishMIP community, you can head to the ",
                  tags$a(href =  "https://fishmip.org/joinus.html", "'Join us'"),
                  " section of our website for more information."),
