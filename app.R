@@ -34,6 +34,12 @@ woa_variables <- var_metadata |>
   drop_na() |> 
   deframe()
 
+# Shapefile with FishMIP regional model boundaries
+fish_reg <- file.path("/rd/gem/private/shared_resources/FishMIP_regional_models",
+                      "FishMIP_regional_models.shp") |> 
+  read_sf() |> 
+  mutate(region = str_to_lower(str_remove_all(region, "'")))
+
 # First tab data ----------------------------------------------------------
 # Folders containing Earth System Model (ESM) data
 fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
@@ -599,9 +605,13 @@ server <- function(input, output, session) {
       error = function(cond){
         NA
       })
+    #Loading region boundaries
+    shp_map <- fish_reg |> 
+      filter(region == str_replace_all(input$region_gfdl, "-", " "))
     
     return(list(df_map = df_map,
-                df_ts = df_ts))
+                df_ts = df_ts,
+                shp_map = shp_map))
   })
   
   observeEvent(gfdl_data(), {
@@ -627,12 +637,20 @@ server <- function(input, output, session) {
            "Rendering map"))
     
     range_map <- range_map(df, input$region_gfdl)
+    
+    if(max(range_map$df$lon) > 180){
+      shp_map <- gfdl_data()$shp_map |> 
+        st_shift_longitude()
+    }else{
+      shp_map <- gfdl_data()$shp_map
+    }
 
     title <- paste0("Climatological mean (1961-2010) ",
                         lookup_file()$long_name) |>
       str_to_sentence()
 
     return(list(df = range_map$df,
+                shp_map = shp_map,
                 ylim = range_map$ylims,
                 xlim = range_map$xlims,
                 title = title))
@@ -641,10 +659,13 @@ server <- function(input, output, session) {
   # Creating first plot
   output$map_gfdl <- renderPlot({
     df <- gfdl_maps_df()$df
+    shp_map <- gfdl_maps_df()$shp_map
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = gfdl_maps_df()$ylim, xlim = gfdl_maps_df()$xlim,
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_file()$cb_lab,
@@ -783,12 +804,17 @@ server <- function(input, output, session) {
       read_parquet(col_select = month:weighted_sd) |>
       mutate(month = factor(month, levels = month.name, ordered = T))
     
+    #Loading region boundaries
+    shp_map <- fish_reg |> 
+      filter(region == str_replace_all(input$region_WOA, "-", " "))
+    
     #Getting depth information
     depths <- unique(df_map$depth)
     
     return(list(df_map = df_map,
                 df_ts = df_ts,
-                depths = depths))
+                depths = depths,
+                shp_map = shp_map))
   })
 
   observeEvent(woa_data(), {
@@ -807,11 +833,19 @@ server <- function(input, output, session) {
     # Adjusting map proportions
     range_map <- range_map(df, input$region_WOA)
     
+    if(max(range_map$df$lon) > 180){
+      shp_map <- woa_data()$shp_map |> 
+        st_shift_longitude()
+    }else{
+      shp_map <- woa_data()$shp_map
+    }
+    
     title <- paste0("Climatological mean (1981-2010) ",
                     lookup_woa()$long_name) |>
       str_to_sentence()
 
     return(list(df = range_map$df,
+                shp_map = shp_map,
                 ylim = range_map$ylims,
                 xlim = range_map$xlims,
                 title = title))
@@ -820,10 +854,13 @@ server <- function(input, output, session) {
   # Creating first plot
   output$map_WOA <- renderPlot({
     df <- woa_maps_df()$df
+    shp_map <- woa_maps_df()$shp_map
 
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = woa_maps_df()$ylim, xlim = woa_maps_df()$xlim, 
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_woa()$cb_lab,
@@ -959,13 +996,18 @@ server <- function(input, output, session) {
                      full.names = T) |>
       read_parquet()
     
+    #Loading region boundaries
+    shp_map <- fish_reg |> 
+      filter(region == str_replace_all(input$region_compare, "-", " "))
+    
     #Getting depth information
     depths <- unique(diff_map$depth)
     
     return(list(diff_map = diff_map,
                 per_map = per_map,
                 ts = ts,
-                depths = depths))
+                depths = depths,
+                shp_map = shp_map))
   })
   
   observeEvent(comp_data(), {
@@ -984,11 +1026,19 @@ server <- function(input, output, session) {
     # Adjusting map proportions
     range_map <- range_map(df, input$region_compare)
     
+    if(max(range_map$df$lon) > 180){
+      shp_map <- comp_data()$shp_map |> 
+        st_shift_longitude()
+    }else{
+      shp_map <- comp_data()$shp_map
+    }
+    
     title <- paste0("Difference in climatological mean (1981-2010) ",
                     lookup_comp()$long_name) |>
       str_to_sentence()
     
     return(list(df = range_map$df,
+                shp_map = shp_map,
                 ylim = range_map$ylims,
                 xlim = range_map$xlims,
                 title = title))
@@ -997,10 +1047,13 @@ server <- function(input, output, session) {
   # Creating first plot
   output$map_compare <- renderPlot({
     df <- comp_maps_diff()$df
+    shp_map <- comp_maps_diff()$shp_map
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = comp_maps_diff()$ylim, xlim = comp_maps_diff()$xlim, 
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_comp()$cb_lab_diff,
