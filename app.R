@@ -591,9 +591,14 @@ server <- function(input, output, session) {
                             full.names = T) |> 
       read_parquet(col_select = lat:vals)
     #Loading time series dataset
-    df_ts <- list.files(ts_files, pattern = lookup_file()$search_file, 
+    df_ts <- tryCatch({
+      list.files(ts_files, pattern = lookup_file()$search_file, 
                         full.names = T) |> 
-      read_parquet(col_select = time:vals)
+        read_parquet(col_select = time:vals)
+      },
+      error = function(cond){
+        NA
+      })
     
     return(list(df_map = df_map,
                 df_ts = df_ts))
@@ -666,6 +671,11 @@ server <- function(input, output, session) {
 
   output$ts_gfdl <- renderPlot({
     df <- gfdl_ts_df()$df
+    
+    validate(
+      need(!is.na(df),
+           paste0("Fixed variable selected from dropdown list.\n",
+                  "Time series is not available for this variable.")))
 
     # Calculate spatially weighted average of variables selected
     ggplot(df, aes(x = time, y = vals)) +
