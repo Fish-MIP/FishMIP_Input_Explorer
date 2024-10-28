@@ -10,17 +10,16 @@ authors:
 - family-names: "Flynn"
   given-names: "Connor"
   orcid: "https://orcid.org/0009-0004-8407-7124"
-- family-names: "Ortega Cisneros"
+- family-names: "Ortega-Cisneros"
   given-names: "Kelly"
   orcid: "https://orcid.org/0000-0003-2511-5448"
 - family-names: "Reimer"
   given-names: "Tormey"
   orcid: "https://orcid.org/0000-0002-5983-2798"
-- name: "Fisheries and Marine Ecosystem Model Intercomparison Project (Fish-MIP)"
 
 title: "FishMIP input explorer for regional ecosystem modellers"
-version: 1.0.0
-doi: TBA
-date-released: TBA
+version: 1.0.2
+doi: 10.5281/zenodo.13902156
+date-released: 2024-10-08
 url: "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/"
 license: Apache v2

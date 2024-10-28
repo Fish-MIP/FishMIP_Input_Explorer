@@ -265,7 +265,7 @@ par_list |>
 
 #Same period as WOA data for comparison
 par_list |> 
-  map(\(x) clim_calc(x, monthly = T, min_year = 1981, max_year = 2010,
+  map(\(x) clim_calc(x, monthly = F, min_year = 1981, max_year = 2010,
                      folder_out = base_out_comp))
 
 
