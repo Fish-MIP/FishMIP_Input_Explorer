@@ -1,7 +1,7 @@
 gfdl_name,standard_name.gfdl,long_name.gfdl,units.gfdl,woa_name,standard_name.woa,long_name.woa,units.woa,woa_name_code
 zmicro-vint,mole_content_of_microplankton_expressed_as_carbon_in_sea_water,Microzooplankton Carbon Content,mol m-2,NA,NA,NA,NA,NA
 mlotst-003,ocean_mixed_layer_thickness_defined_by_sigma_t,Mixed layer depth (delta rho = 0.03),m,NA,NA,NA,NA,NA
-intppdiaz,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_diazotrophs,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_diazotrophs,mol m-2 s-1,NA,NA,NA,NA,NA
+intppdiaz,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_diazotrophs,Net Primary Mole Productivity Of Biomass Expressed As Carbon By Diazotrophs,mol m-2 s-1,NA,NA,NA,NA,NA
 phypico-vint,mole_content_of_picophytoplankton_expressed_as_carbon_in_sea_water,Mole Content of Picophytoplankton expressed as Carbon in sea water,mol m-2,NA,NA,NA,NA,NA
 ph-surf,sea_water_ph_reported_on_total_scale,pH at surface,1,NA,NA,NA,NA,NA
 rsds,NA,Downward Solar Radiation Flux at Surface,W m-2,NA,NA,NA,NA,NA
@@ -16,7 +16,7 @@ o2-surf,mole_concentration_of_dissolved_molecular_oxygen_in_sea_water,Dissolved 
 zmeso-vint,mole_content_of_mesoplankton_expressed_as_carbon_in_sea_water,Mesozooplankton Carbon Content,mol m-2,NA,NA,NA,NA,NA
 intpp,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_phytoplankton,Primary Organic Carbon Production by All Types of Phytoplankton,mol m-2 s-1,NA,NA,NA,NA,NA
 phyc,mole_concentration_of_phytoplankton_expressed_as_carbon_in_sea_water,Phytoplankton Carbon Concentration,mol m-3,NA,NA,NA,NA,NA
-cellareao,area,area of grid cell,m2,NA,NA,NA,NA,NA
+cellareao,area,Area of grid cell,m2,NA,NA,NA,NA,NA
 phydiat,mole_concentration_of_diatoms_expressed_as_carbon_in_sea_water,Mole Concentration of Diatoms expressed as Carbon in sea water,mol m-3,NA,NA,NA,NA,NA
 zooc,mole_concentration_of_zooplankton_expressed_as_carbon_in_sea_water,Zooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA,NA
 phydiat-vint,mole_content_of_diatoms_expressed_as_carbon_in_sea_water,Mole Content of Diatoms expressed as Carbon in sea water,mol m-2,NA,NA,NA,NA,NA
