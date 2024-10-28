@@ -33,6 +33,8 @@ all_meta <- file.path("/g/data/vf71/fishmip_inputs/ISIMIP3a/global_inputs",
                                gfdl_name == "cellareao" ~
                                  str_to_sentence(long_name),
                                T ~ long_name),
+         gfdl_name = case_when(gfdl_name == "cellareao" ~ "areacello", 
+                               T ~ gfdl_name),
          woa_name = case_when(str_detect(standard_name, "temperature") ~ "t_an",
                               str_detect(standard_name, "salinity") ~ "s_an",
                               T ~ NA),
