@@ -23,7 +23,7 @@ region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id,
 # Getting names of environmental variables available with equivalent from WOA
 var_metadata <- read_csv("www/woa_gfdl_var_keys.csv", show_col_types = F) 
 
-  #GFDL variables - named vector
+# GFDL variables - named vector
 gfdl_variables <- var_metadata |> 
   select(long_name.gfdl, gfdl_name) |> 
   arrange(long_name.gfdl) |> 
@@ -213,7 +213,7 @@ ui <- fluidPage(
                ),
                mainPanel(
                  br(),
-                 # verbatimTextOutput("test"),
+                 verbatimTextOutput("test"),
                  "Figures shown in this tab use the ", 
                  em("Observation-based climate related forcing"), " (obsclim) 
                  outputs from the GFDL-MOM6-COBALT2 model. These outputs were
@@ -712,27 +712,20 @@ server <- function(input, output, session) {
       },
     # Creating name of download file based on original file name
     content = function(file){
-      df <- gfdl_down_data()
-      id <- showNotification("Preparing Download...", type = "message", 
+      id <- showNotification("Preparing Download...", type = "message",
                              duration = NULL, closeButton = F)
-      on.exit(removeNotification(id), add = TRUE)
-      Sys.sleep(1)
-      
-      notify("Getting everything together...", id = id)
-      Sys.sleep(1)
-      
-      notify("Almost there...", id = id)
-      Sys.sleep(1)
+      df <- gfdl_down_data()
       if(str_detect(file, "csv$")){
         write_csv(df, file)
       }else{
         file.copy(df, file)
       }
+      on.exit(removeNotification(id), add = TRUE)
       }
   )
   
   # output$test <- renderPrint({
-  #   c(gfdl_down_data(),
+  #   c(head(gfdl_down_data()),
   #   gfdl_down_path()$file_out)
   #   })
 
@@ -778,7 +771,6 @@ server <- function(input, output, session) {
     df_ts <- list.files(woa_ts, pattern = lookup_woa()$search_file,
                         full.names = T) |>
       read_parquet(col_select = month:weighted_sd) |>
-      # drop_na(vals) |> 
       mutate(month = factor(month, levels = month.name, ordered = T))
     
     #Getting depth information
@@ -900,18 +892,11 @@ server <- function(input, output, session) {
       },
     # Creating name of download file based on original file name
     content = function(file){
+      df <- woa_down_data()$df
       id <- showNotification("Preparing Download...", type = "message", 
                              duration = NULL, closeButton = F)
       on.exit(removeNotification(id), add = TRUE)
-      Sys.sleep(1)
-      
-      notify("Getting everything together...", id = id)
-      Sys.sleep(1)
-      
-      notify("Almost there...", id = id)
-      Sys.sleep(1)
-      
-      write_csv(woa_down_data()$df, file)
+      write_csv(df, file)
     }
   )
 
