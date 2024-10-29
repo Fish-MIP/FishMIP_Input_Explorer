@@ -399,8 +399,8 @@ ui <- fluidPage(
                  observations."),
                  
                  #Optional download
-                 p(em("Optional: "), "Get a copy of the data need for bias 
-                 correction as a compressed folder by clicking the 'Download' 
+                 p(em("Optional: "), "Get a copy of the data for bias correction 
+                 (if needed) as a compressed folder by clicking the 'Download' 
                    button below."),
                  # Download option
                  downloadButton(outputId = "download_comp", 
