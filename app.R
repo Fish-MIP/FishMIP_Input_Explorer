@@ -290,6 +290,7 @@ ui <- fluidPage(
                  " tab to see a time series of area-weighted 
                      monthly mean of observations."),
                  
+                 #Optional download
                  p(em("Optional: "), "Get a copy of the data used to create 
                    climatological maps as a csv file by clicking the 'Download' 
                    button below."),
@@ -395,7 +396,15 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), 
                  " tab to see the difference in climatological monthly 
                  area-weighted mean (1981-2010) between the model output and 
-                 observations.")
+                 observations."),
+                 
+                 #Optional download
+                 p(em("Optional: "), "Get a copy of the data for bias correction 
+                 (if needed) as a compressed folder by clicking the 'Download' 
+                   button below."),
+                 # Download option
+                 downloadButton(outputId = "download_comp", 
+                                label = "Download")
                ),
                mainPanel(
                  br(),
@@ -913,8 +922,12 @@ server <- function(input, output, session) {
                     lookup_woa()$long_name) |>
       str_to_sentence()
     
+    shp_map <- woa_maps_df()$shp_map
+    
     ggplot(range_map$df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = range_map$ylims, xlim = range_map$xlims, 
                expand = F) +
       guides(fill = guide_colorbar(title = "Number of observations",
@@ -1092,6 +1105,26 @@ server <- function(input, output, session) {
            y = str_wrap(lookup_comp()$cb_lab, 50))+
       theme(legend.title = element_blank())
   }, height = 500, width = 800)
+  
+  
+  comp_down_data <- reactive({
+    file_path <- list.files(file.path(fishmip_dir, "download_correction"),
+                            pattern = lookup_comp()$ts_file, full.names = T)
+  })
+
+  output$download_comp <- downloadHandler(
+    filename = function(){
+      basename(comp_down_data())
+    },
+    # Creating name of download file based on original file name
+    content = function(file){
+      id <- showNotification("Preparing Download...", type = "message",
+                             duration = NULL, closeButton = F)
+      df <- comp_down_data()
+      file.copy(df, file)
+      on.exit(removeNotification(id), add = TRUE)
+    }
+  )
 }
 
 shinyApp(ui = ui, server = server)
