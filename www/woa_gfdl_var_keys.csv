@@ -20,7 +20,7 @@ areacello,area,Area of grid cell,m2,NA,NA,NA,NA,NA
 phydiat,mole_concentration_of_diatoms_expressed_as_carbon_in_sea_water,Mole Concentration of Diatoms expressed as Carbon in sea water,mol m-3,NA,NA,NA,NA,NA
 zooc,mole_concentration_of_zooplankton_expressed_as_carbon_in_sea_water,Zooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA,NA
 phydiat-vint,mole_content_of_diatoms_expressed_as_carbon_in_sea_water,Mole Content of Diatoms expressed as Carbon in sea water,mol m-2,NA,NA,NA,NA,NA
-so,sea_water_salinity,Sea Water Salinity,parts per thousand,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
+so,sea_water_salinity,Sea Water Salinity,0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
 chl,mass_concentration_of_phytoplankton_expressed_as_chlorophyll_in_sea_water,Mass Concentration of Total Phytoplankton expressed as Chlorophyll in sea water,kg m-3,NA,NA,NA,NA,NA
 zmicro,mole_concentration_of_microplankton_expressed_as_carbon_in_sea_water,Microzooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA,NA
 zmeso,mole_concentration_of_mesoplankton_expressed_as_carbon_in_sea_water,Mesozooplankton Carbon Concentration,mol m-3,NA,NA,NA,NA,NA
@@ -36,7 +36,7 @@ ph,sea_water_ph_reported_on_total_scale,pH,1,NA,NA,NA,NA,NA
 tob,sea_water_potential_temperature,Sea Water Potential Temperature on Bottom,°C,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,°C,temp
 thetao,sea_water_potential_temperature,Sea Water Potential Temperature,°C,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,°C,temp
 zooc-vint,mole_content_of_zooplankton_expressed_as_carbon_in_sea_water,Zooplankton Carbon Content,mol m-2,NA,NA,NA,NA,NA
-so-surf,sea_water_salinity,Sea Water Salinity at Surface,parts per thousand,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
+so-surf,sea_water_salinity,Sea Water Salinity at Surface,0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
 deptho,sea_floor_depth_below_geoid,Sea Floor Depth Below Geoid,m,NA,NA,NA,NA,NA
 tos,sea_surface_temperature,Sea Surface Temperature,°C,t_an,Sea Water Temperature,Objectively analyzed mean fields for sea_water_temperature at standard depth levels.,°C,temp
-so-bot,sea_water_salinity,Sea Water Salinity on Bottom (z_b),parts per thousand,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
+so-bot,sea_water_salinity,Sea Water Salinity on Bottom (z_b),0.001,s_an,Sea Water Practical Salinity,Objectively analyzed mean fields for sea_water_practical_salinity at standard depth levels.,1,sal
