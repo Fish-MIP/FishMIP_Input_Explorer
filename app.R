@@ -219,23 +219,32 @@ ui <- fluidPage(
                ),
                mainPanel(
                  br(),
-                 verbatimTextOutput("test"),
-                 "Figures shown in this tab use the ", 
+                 "All figures shown in this tab are based on the ", 
                  em("Observation-based climate related forcing"), " (obsclim) 
-                 outputs from the GFDL-MOM6-COBALT2 model. These outputs were
-                 obtained from the ", 
-                 tags$a(href = 
-                          "https://data.isimip.org/search/tree/ISIMIP3a/InputData/climate/ocean/gfdl-mom6-cobalt2/obsclim/", 
+                 outputs from the GFDL-MOM6-COBALT2 model. These data were 
+                 originally obtained from the ", 
+                 tags$a(href = paste0("https://data.isimip.org/search/tree/",
+                                      "ISIMIP3a/InputData/climate/ocean/",
+                                      "gfdl-mom6-cobalt2/obsclim/"), 
                         "ISIMIP Data Repository."),
                  br(), br(),
-                 "The climatological map shows the mean conditions for the 
-                 environmental variable selected on the left panel. These 
-                 climatologies use the entire period covered by the model: 
-                 1961-2010.",
+                 "The ", em("climatological map"), " tab below shows the mean 
+                 climatology (1961-2010) for the environmental variable and 
+                 within the boundaries of the regional model of interest 
+                 selected on the left.",
                  br(), br(),
-                 "Time series show the weighted mean for each time step in the 
-                 model data. We used grid cell area as weighting.",  
+                 "The ", em("Time series plot"), "tab below shows the 
+                 area-weighted monthly mean between 1961 and 2010.",  
                  br(), br(),
+                 strong("Note: "), "The variable names and units shown in the
+                 dropdown list and plots come from the GFDL-MOM6-COBALT2 model. 
+                 We have chosen not apply any transformation to the original 
+                 model outputs. Instead, we summarised data so we could create 
+                 the map and time series plots within the limits of all FishMIP 
+                 regional models. If your model requires environmental data to 
+                 be in a unit or grid that is different to the one available in 
+                 the GFDL-MOM6-COBALT2 model, you can download the data from 
+                 this website and post-process it to meet your needs.",
                  tabsetPanel(
                    tabPanel("Climatological map",
                             mainPanel(
@@ -586,6 +595,8 @@ server <- function(input, output, session) {
     unit <- var_meta$units.gfdl
     if(unit == "1"){
       unit <- "unitless"
+    }else if(unit == "0.001"){
+      unit <-  "parts per thousand"
     }
     cb_lab <- paste0(var, " (", unit, ")")
     
