@@ -210,7 +210,6 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), 
                  " tab to see a time series of the area-weighted monthly
                      mean and the linear temporal trend."),
-                 
                  p(em("Optional: "), "Get a copy of the data used to create 
                    these plots by clicking the 'Download' button below."),
                  # Download option
@@ -228,7 +227,7 @@ ui <- fluidPage(
                                       "gfdl-mom6-cobalt2/obsclim/"), 
                         "ISIMIP Data Repository."),
                  br(), br(),
-                 "The ", em("climatological map"), " tab below shows the mean 
+                 "The ", em("Climatological map"), " tab below shows the mean 
                  climatology (1961-2010) for the environmental variable and 
                  within the boundaries of the regional model of interest 
                  selected on the left.",
@@ -245,6 +244,7 @@ ui <- fluidPage(
                  be in a unit or grid that is different to the one available in 
                  the GFDL-MOM6-COBALT2 model, you can download the data from 
                  this website and post-process it to meet your needs.",
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map",
                             mainPanel(
@@ -312,27 +312,34 @@ ui <- fluidPage(
                  tags$a(href = 
                           "https://www.ncei.noaa.gov/products/world-ocean-atlas", 
                         "World Ocean Atlas 2023 (WOA23)"), 
-                 ", specifically we used the ", 
-                 em("objectively analysed climatologies"), "field to create the
-                 climatological maps and time series, and the ",
-                 em("number of observations "), "field for the maps available in
-                 the sub-tab under the same name.",  
+                 ". We used the ", em("objectively analysed climatologies"), 
+                 "field to create the climatological maps and area-weighted 
+                 monthly climatology time series plot. While, the ",
+                 em("number of observations "), "variable was used to create the
+                 maps shown in the sub-tab under the same name.",  
                  br(), br(),
-                 "The maps in this tab show WOA23 data as is, data was extracted
-                 within the boundaries of FishMIP regional models and no further
-                 data processing was done. You can download this data using 
-                 the ", em('Download'), " button on the left. Note that if you 
-                 would like to compare WOA23 data to GFDL outputs or any other 
-                 data product, you will need to regrid the WOA23 data to match 
-                 the data you are comparing it to. We have an ",
-                 tags$a(href = "https://github.com/Fish-MIP/processing_WOA_data/blob/main/scripts/P_regridding_woa_data.ipynb",
-                        "example notebook"), " showing you step by step how to 
-                 regrid data.",
+                 strong("Note: "), "The variable names and units shown in the
+                 dropdown list and plots come from the WOA23. We have chosen not
+                 apply any transformation to the original data. Instead, we 
+                 summarised data so we could create maps and time series plots
+                 within the limits of all FishMIP regional models. If your model
+                 requires environmental data to be in a unit or grid that is 
+                 different to the one available in the WOA23a you can download 
+                 the data from this website and post-process it to meet your 
+                 needs.",
                  br(), br(),
-                 "For time series plots we weighted the monthly climatology by
-                 the area of the grid cells.",
-                 br(),
-                 br(),
+                 "For some regions, the WOA23 dataset may have a very limited 
+                 number of observations and so it may not offer the most 
+                 realistic representation of your area of interest. In this 
+                 case, you may choose to use a different observational product
+                 to assess the performance of GFDL-MOM6-COBALT2 outputs. We have
+                 an ", tags$a(href = 
+                                paste0("https://github.com/Fish-MIP/",
+                                       "processing_WOA_data/blob/main/scripts/",
+                                       "P_regridding_woa_data.ipynb"),
+                        "example notebook"), " showing how you can regrid this
+                 data to match the grid used by the GFDL-MOM6-COBALT2 model.",
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map", 
                             mainPanel(
@@ -427,7 +434,7 @@ ui <- fluidPage(
                  br(),
                  "This means that positive values in the maps identify areas 
                  where GFDL overestimated mean conditions.",
-                 br(),
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological maps",
                             mainPanel(
