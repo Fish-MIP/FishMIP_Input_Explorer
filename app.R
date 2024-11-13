@@ -14,7 +14,7 @@ library(sf)
 library(ggplot2)
 options(scipen = 99)
 
-# Setting up  -------------------------------------------------------------
+# Loading supporting files ------------------------------------------------
 # Get list of all regions available
 region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id, 
                         show_col_types = F) |> 
@@ -40,7 +40,7 @@ fish_reg <- file.path("/rd/gem/private/shared_resources/FishMIP_regional_models"
   read_sf() |> 
   mutate(region = str_to_lower(str_remove_all(region, "'")))
 
-# First tab data ----------------------------------------------------------
+# Defining location of relevant data sources ------------------------------
 # Folders containing Earth System Model (ESM) data
 fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
                          "ocean/obsclim/regional/monthly/historical",
