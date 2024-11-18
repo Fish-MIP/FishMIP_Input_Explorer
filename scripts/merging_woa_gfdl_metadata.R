@@ -27,7 +27,15 @@ all_meta <- file.path("/g/data/vf71/fishmip_inputs/ISIMIP3a/global_inputs",
   read_csv(show_col_types = FALSE) |> 
   rename(gfdl_name = short_name) |> 
   select(gfdl_name:units) |> 
-  mutate(woa_name = case_when(str_detect(standard_name, "temperature") ~ "t_an",
+  mutate(long_name = case_when(gfdl_name == "intppdiaz" ~ 
+                                 str_to_title(str_replace_all(long_name, "_",
+                                                              " ")),
+                               gfdl_name == "cellareao" ~
+                                 str_to_sentence(long_name),
+                               T ~ long_name),
+         gfdl_name = case_when(gfdl_name == "cellareao" ~ "areacello", 
+                               T ~ gfdl_name),
+         woa_name = case_when(str_detect(standard_name, "temperature") ~ "t_an",
                               str_detect(standard_name, "salinity") ~ "s_an",
                               T ~ NA),
          units = case_when(str_detect(units, "degC") ~ "°C",

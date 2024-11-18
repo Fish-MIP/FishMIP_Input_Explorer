@@ -12,12 +12,9 @@ library(rnaturalearth)
 library(tidyr)
 library(sf)
 library(ggplot2)
-library(data.table)
-library(plotly)
-library(glue)
 options(scipen = 99)
 
-# Setting up  -------------------------------------------------------------
+# Loading supporting files ------------------------------------------------
 # Get list of all regions available
 region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id, 
                         show_col_types = F) |> 
@@ -26,7 +23,7 @@ region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id,
 # Getting names of environmental variables available with equivalent from WOA
 var_metadata <- read_csv("www/woa_gfdl_var_keys.csv", show_col_types = F) 
 
-  #GFDL variables - named vector
+# GFDL variables - named vector
 gfdl_variables <- var_metadata |> 
   select(long_name.gfdl, gfdl_name) |> 
   arrange(long_name.gfdl) |> 
@@ -37,13 +34,17 @@ woa_variables <- var_metadata |>
   drop_na() |> 
   deframe()
 
-# First tab data ----------------------------------------------------------
+# Shapefile with FishMIP regional model boundaries
+fish_reg <- file.path("/rd/gem/private/shared_resources/FishMIP_regional_models",
+                      "FishMIP_regional_models.shp") |> 
+  read_sf() |> 
+  mutate(region = str_to_lower(str_remove_all(region, "'")))
+
+# Defining location of relevant data sources ------------------------------
 # Folders containing Earth System Model (ESM) data
-fishmip_dir <- file.path("/home/ubuntu/gem/public/fishmip/ISIMIP3a/InputData/climate",
+fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
                          "ocean/obsclim/regional/monthly/historical",
                          "GFDL-MOM6-COBALT2")
-
-
 
 #Get a list of GFDL files available 
 #For download
@@ -59,9 +60,8 @@ map_comp_files <- file.path(fishmip_dir, "comp_maps")
 ts_comp_files <- file.path(fishmip_dir, "comp_ts")
 
 # Getting list of all files within folders
-woa_maps <- "/home/ubuntu/gem/public/fishmip/WOA_data/regional/climatology"
-woa_ts <- "/home/ubuntu/gem/public/fishmip/WOA_data/regional/monthly/ts"
-
+woa_maps <- "/rd/gem/public/fishmip/WOA_data/regional/climatology"
+woa_ts <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/ts"
 
 # Loading map of the world
 world <- ne_countries(returnclass = "sf", scale = "medium")
@@ -158,30 +158,6 @@ range_map <- function(df, region){
 }
 
 
-## Catch and effort data and variable choices
-
-effort_regional_ts <- fread(file.path("/home/ubuntu/gem/private/users/yannickr",
-                            "DKRZ_EffortFiles",
-                            "effort_histsoc_1841_2017_regional_models.csv")) |>
-  filter(region != "") |>
-  mutate(NomActive = as.numeric(NomActive)) |>
-  rename("Functional Group" = "FGroup")
-
-catch_regional_ts <- fread(
-  file.path("/home/ubuntu/gem/private/users/yannickr",
-            "DKRZ_EffortFiles",
-            "calibration_catch_histsoc_1850_2017_regional_models.csv")) |>
-  mutate(catch = Reported + IUU + Discards) |>
-  rename("Functional Group" = "FGroup")
-# how to make these load faster... It currently takes like 20 seconds..
-
-effort_catch_region_keys <- unique(effort_regional_ts$region)
-
-# Define variables for each dataset type
-effort_variables <- c("Functional Group", "Sector", "Gear")
-catch_variables <- c("Functional Group", "Sector")  # without "Gear"
-
-
 # Defining user interface ------------------------------------------------------
 
 ## Global UI -------------------------------------------------------------------
@@ -234,7 +210,6 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), 
                  " tab to see a time series of the area-weighted monthly
                      mean and the linear temporal trend."),
-                 
                  p(em("Optional: "), "Get a copy of the data used to create 
                    these plots by clicking the 'Download' button below."),
                  # Download option
@@ -243,23 +218,32 @@ ui <- fluidPage(
                ),
                mainPanel(
                  br(),
-                 # verbatimTextOutput("test"),
-                 "Figures shown in this tab use the ", 
+                 "All figures shown in this tab are based on the ", 
                  em("Observation-based climate related forcing"), " (obsclim) 
-                 outputs from the GFDL-MOM6-COBALT2 model. These outputs were
-                 obtained from the ", 
-                 tags$a(href = 
-                          "https://data.isimip.org/search/tree/ISIMIP3a/InputDat
-                        a/climate/ocean/gfdl-mom6-cobalt2/obsclim/", 
+                 outputs from the GFDL-MOM6-COBALT2 model. These data were 
+                 originally obtained from the ", 
+                 tags$a(href = paste0("https://data.isimip.org/search/tree/",
+                                      "ISIMIP3a/InputData/climate/ocean/",
+                                      "gfdl-mom6-cobalt2/obsclim/"), 
                         "ISIMIP Data Repository."),
                  br(), br(),
-                 "The climatological map shows the mean conditions for the 
-                 environmental variable selected on the left panel. These 
-                 climatologies use the entire period covered by the model: 
-                 1961-2010.",
+                 "The ", em("Climatological map"), " tab below shows the mean 
+                 climatology (1961-2010) for the environmental variable and 
+                 within the boundaries of the regional model of interest 
+                 selected on the left.",
                  br(), br(),
-                 "Time series show the weighted mean for each time step in the 
-                 model data. We used grid cell area as weighting.",  
+                 "The ", em("Time series plot"), "tab below shows the 
+                 area-weighted monthly mean between 1961 and 2010.",  
+                 br(), br(),
+                 strong("Note: "), "The variable names and units shown in the
+                 dropdown list and plots come from the GFDL-MOM6-COBALT2 model. 
+                 We have chosen not apply any transformation to the original 
+                 model outputs. Instead, we summarised data so we could create 
+                 the map and time series plots within the limits of all FishMIP 
+                 regional models. If your model requires environmental data to 
+                 be in a unit or grid that is different to the one available in 
+                 the GFDL-MOM6-COBALT2 model, you can download the data from 
+                 this website and post-process it to meet your needs.",
                  br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map",
@@ -315,6 +299,7 @@ ui <- fluidPage(
                  " tab to see a time series of area-weighted 
                      monthly mean of observations."),
                  
+                 #Optional download
                  p(em("Optional: "), "Get a copy of the data used to create 
                    climatological maps as a csv file by clicking the 'Download' 
                    button below."),
@@ -327,28 +312,34 @@ ui <- fluidPage(
                  tags$a(href = 
                           "https://www.ncei.noaa.gov/products/world-ocean-atlas", 
                         "World Ocean Atlas 2023 (WOA23)"), 
-                 ", specifically we used the ", 
-                 em("objectively analysed climatologies"), "field to create the
-                 climatological maps and time series, and the ",
-                 em("number of observations "), "field for the maps available in
-                 the sub-tab under the same name.",  
+                 ". We used the ", em("objectively analysed climatologies"), 
+                 "field to create the climatological maps and area-weighted 
+                 monthly climatology time series plot. While, the ",
+                 em("number of observations "), "variable was used to create the
+                 maps shown in the sub-tab under the same name.",  
                  br(), br(),
-                 "The maps in this tab show WOA23 data as is, data was extracted
-                 within the boundaries of FishMIP regional models and no further
-                 data processing was done. You can download this data using 
-                 the ", em('Download'), " button on the left. Note that if you 
-                 would like to compare WOA23 data to GFDL outputs or any other 
-                 data product, you will need to regrid the WOA23 data to match 
-                 the data you are comparing it to. We have an ",
-                 tags$a(href = "https://github.com/Fish-MIP/processing_WOA_data
-                        /blob/main/scripts/P_regridding_woa_data.ipynb",
-                        "example notebook"), " showing you step by step how to 
-                 regrid data.",
+                 strong("Note: "), "The variable names and units shown in the
+                 dropdown list and plots come from the WOA23. We have chosen not
+                 apply any transformation to the original data. Instead, we 
+                 summarised data so we could create maps and time series plots
+                 within the limits of all FishMIP regional models. If your model
+                 requires environmental data to be in a unit or grid that is 
+                 different to the one available in the WOA23a you can download 
+                 the data from this website and post-process it to meet your 
+                 needs.",
                  br(), br(),
-                 "For time series plots we weighted the monthly climatology by
-                 the area of the grid cells.",
-                 br(),
-                 br(),
+                 "For some regions, the WOA23 dataset may have a very limited 
+                 number of observations and so it may not offer the most 
+                 realistic representation of your area of interest. In this 
+                 case, you may choose to use a different observational product
+                 to assess the performance of GFDL-MOM6-COBALT2 outputs. We have
+                 an ", tags$a(href = 
+                                paste0("https://github.com/Fish-MIP/",
+                                       "processing_WOA_data/blob/main/scripts/",
+                                       "P_regridding_woa_data.ipynb"),
+                        "example notebook"), " showing how you can regrid this
+                 data to match the grid used by the GFDL-MOM6-COBALT2 model.",
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map", 
                             mainPanel(
@@ -421,7 +412,15 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), 
                  " tab to see the difference in climatological monthly 
                  area-weighted mean (1981-2010) between the model output and 
-                 observations.")
+                 observations."),
+                 
+                 #Optional download
+                 p(em("Optional: "), "Get a copy of the data for bias correction 
+                 (if needed) as a compressed folder by clicking the 'Download' 
+                   button below."),
+                 # Download option
+                 downloadButton(outputId = "download_comp", 
+                                label = "Download")
                ),
                mainPanel(
                  br(),
@@ -435,7 +434,7 @@ ui <- fluidPage(
                  br(),
                  "This means that positive values in the maps identify areas 
                  where GFDL overestimated mean conditions.",
-                 br(),
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological maps",
                             mainPanel(
@@ -459,65 +458,6 @@ ui <- fluidPage(
                )
              )
     ),
-    
-    ## Catch and effort tab ----------------------------------------------------
-    tabPanel("Explore regional fishing effort and catch",
-             sidebarLayout(
-               sidebarPanel(
-                 h4(strong("Instructions:")),
-                 
-                 # Choose catch or effort data
-                 p("1. Select dataset to view:"),
-                 selectInput(inputId = "catch_effort_select", label = NULL,
-                             choices = c("Fishing Effort", "Catch"), 
-                             selected = "Fishing Effort"),
-                 
-                 # Choose region of interest
-                 p("2. Select a FishMIP region:"),
-                 selectInput(inputId = "region_effort", label = NULL,
-                             choices = effort_catch_region_keys, 
-                             selected = "East Bass Strait"),
-                 
-                 # Choose variable of interest
-                 p("3. Select variable to view:"),
-                 selectInput(inputId = "variable_effort", 
-                             label = NULL,
-                             choices = effort_variables,
-                             selected = "Functional Group"),
-                 
-                 # Inline layout for download button
-                 fluidRow(
-                   column(6, p(em("Optional: "), "Get a copy of the data used 
-                   to create 
-                   these plots by clicking the 'Download Data' button")),
-                   column(6, downloadButton(outputId = "download_data", 
-                                            label = "Download Data"))
-                 )
-               ),
-               mainPanel(br(),
-                        "Figures shown in this tab use fishing effort data from 
-                        ", 
-                        tags$a(href = 
-                        "https://www.nature.com/articles/s41597-023-02824-6", 
-                        "A database of mapped global fishing activity 1950–2017 
-                        (Rousseau et al. 2024)"), 
-                        "and catch data from ", tags$a(href = 
-                        "https://metadata.imas.utas.edu.au/geonetwork/srv/api
-                        /records/5c4590d3-a45a-4d37-bf8b-ecd145cb356d?language=eng",
-                        "Global Fisheries Landings V4.0 (Watson 2017) "),
-                                       br(),
-                 tabPanel("",
-                          mainPanel(
-                            br(), 
-                            withLoader(plotlyOutput(outputId = "ts_effort", 
-                                       width = "100%", height = "500px"),
-                                       type = "html", loader = "myloader")
-                          )
-                 )
-               )
-             )
-    ),
-    
     ## About tab ---------------------------------------------------------------
     tabPanel(title = "About",
              mainPanel(
@@ -525,8 +465,7 @@ ui <- fluidPage(
                h3(strong("About this website")),
                p("This tool allows regional modellers to visualise 
                  environmental data from GFDL-MOM6-COBALT2 and from 
-                 observations to determine if bias correction (Step 3 below) 
-                 needs to be 
+                 observations to determine if bias correction (Step 3 below) needs to be 
                  applied to the data prior to its use as forcings of a regional
                  marine ecosystem model."),
                br(),
@@ -663,6 +602,8 @@ server <- function(input, output, session) {
     unit <- var_meta$units.gfdl
     if(unit == "1"){
       unit <- "unitless"
+    }else if(unit == "0.001"){
+      unit <-  "parts per thousand"
     }
     cb_lab <- paste0(var, " (", unit, ")")
     
@@ -683,12 +624,21 @@ server <- function(input, output, session) {
                             full.names = T) |> 
       read_parquet(col_select = lat:vals)
     #Loading time series dataset
-    df_ts <- list.files(ts_files, pattern = lookup_file()$search_file, 
+    df_ts <- tryCatch({
+      list.files(ts_files, pattern = lookup_file()$search_file, 
                         full.names = T) |> 
-      read_parquet(col_select = time:vals)
+        read_parquet(col_select = time:vals)
+      },
+      error = function(cond){
+        NA
+      })
+    #Loading region boundaries
+    shp_map <- fish_reg |> 
+      filter(region == str_replace_all(input$region_gfdl, "-", " "))
     
     return(list(df_map = df_map,
-                df_ts = df_ts))
+                df_ts = df_ts,
+                shp_map = shp_map))
   })
   
   observeEvent(gfdl_data(), {
@@ -714,25 +664,35 @@ server <- function(input, output, session) {
            "Rendering map"))
     
     range_map <- range_map(df, input$region_gfdl)
+    
+    if(max(range_map$df$lon) > 180){
+      shp_map <- gfdl_data()$shp_map |> 
+        st_shift_longitude()
+    }else{
+      shp_map <- gfdl_data()$shp_map
+    }
 
     title <- paste0("Climatological mean (1961-2010) ",
                         lookup_file()$long_name) |>
       str_to_sentence()
 
     return(list(df = range_map$df,
+                shp_map = shp_map,
                 ylim = range_map$ylims,
                 xlim = range_map$xlims,
                 title = title))
   })
-  
 
   # Creating first plot
   output$map_gfdl <- renderPlot({
     df <- gfdl_maps_df()$df
+    shp_map <- gfdl_maps_df()$shp_map
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = gfdl_maps_df()$ylim, xlim = gfdl_maps_df()$xlim,
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_file()$cb_lab,
@@ -759,6 +719,11 @@ server <- function(input, output, session) {
 
   output$ts_gfdl <- renderPlot({
     df <- gfdl_ts_df()$df
+    
+    validate(
+      need(!is.na(df),
+           paste0("Fixed variable selected from dropdown list.\n",
+                  "Time series is not available for this variable.")))
 
     # Calculate spatially weighted average of variables selected
     ggplot(df, aes(x = time, y = vals)) +
@@ -805,27 +770,20 @@ server <- function(input, output, session) {
       },
     # Creating name of download file based on original file name
     content = function(file){
-      df <- gfdl_down_data()
-      id <- showNotification("Preparing Download...", type = "message", 
+      id <- showNotification("Preparing Download...", type = "message",
                              duration = NULL, closeButton = F)
-      on.exit(removeNotification(id), add = TRUE)
-      Sys.sleep(1)
-      
-      notify("Getting everything together...", id = id)
-      Sys.sleep(1)
-      
-      notify("Almost there...", id = id)
-      Sys.sleep(1)
+      df <- gfdl_down_data()
       if(str_detect(file, "csv$")){
         write_csv(df, file)
       }else{
         file.copy(df, file)
       }
+      on.exit(removeNotification(id), add = TRUE)
       }
   )
   
   # output$test <- renderPrint({
-  #   c(gfdl_down_data(),
+  #   c(head(gfdl_down_data()),
   #   gfdl_down_path()$file_out)
   #   })
 
@@ -871,15 +829,19 @@ server <- function(input, output, session) {
     df_ts <- list.files(woa_ts, pattern = lookup_woa()$search_file,
                         full.names = T) |>
       read_parquet(col_select = month:weighted_sd) |>
-      # drop_na(vals) |> 
       mutate(month = factor(month, levels = month.name, ordered = T))
+    
+    #Loading region boundaries
+    shp_map <- fish_reg |> 
+      filter(region == str_replace_all(input$region_WOA, "-", " "))
     
     #Getting depth information
     depths <- unique(df_map$depth)
     
     return(list(df_map = df_map,
                 df_ts = df_ts,
-                depths = depths))
+                depths = depths,
+                shp_map = shp_map))
   })
 
   observeEvent(woa_data(), {
@@ -898,11 +860,19 @@ server <- function(input, output, session) {
     # Adjusting map proportions
     range_map <- range_map(df, input$region_WOA)
     
+    if(max(range_map$df$lon) > 180){
+      shp_map <- woa_data()$shp_map |> 
+        st_shift_longitude()
+    }else{
+      shp_map <- woa_data()$shp_map
+    }
+    
     title <- paste0("Climatological mean (1981-2010) ",
                     lookup_woa()$long_name) |>
       str_to_sentence()
 
     return(list(df = range_map$df,
+                shp_map = shp_map,
                 ylim = range_map$ylims,
                 xlim = range_map$xlims,
                 title = title))
@@ -911,10 +881,13 @@ server <- function(input, output, session) {
   # Creating first plot
   output$map_WOA <- renderPlot({
     df <- woa_maps_df()$df
+    shp_map <- woa_maps_df()$shp_map
 
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = woa_maps_df()$ylim, xlim = woa_maps_df()$xlim, 
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_woa()$cb_lab,
@@ -967,8 +940,12 @@ server <- function(input, output, session) {
                     lookup_woa()$long_name) |>
       str_to_sentence()
     
+    shp_map <- woa_maps_df()$shp_map
+    
     ggplot(range_map$df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = range_map$ylims, xlim = range_map$xlims, 
                expand = F) +
       guides(fill = guide_colorbar(title = "Number of observations",
@@ -993,18 +970,11 @@ server <- function(input, output, session) {
       },
     # Creating name of download file based on original file name
     content = function(file){
+      df <- woa_down_data()$df
       id <- showNotification("Preparing Download...", type = "message", 
                              duration = NULL, closeButton = F)
       on.exit(removeNotification(id), add = TRUE)
-      Sys.sleep(1)
-      
-      notify("Getting everything together...", id = id)
-      Sys.sleep(1)
-      
-      notify("Almost there...", id = id)
-      Sys.sleep(1)
-      
-      write_csv(woa_down_data()$df, file)
+      write_csv(df, file)
     }
   )
 
@@ -1057,13 +1027,18 @@ server <- function(input, output, session) {
                      full.names = T) |>
       read_parquet()
     
+    #Loading region boundaries
+    shp_map <- fish_reg |> 
+      filter(region == str_replace_all(input$region_compare, "-", " "))
+    
     #Getting depth information
     depths <- unique(diff_map$depth)
     
     return(list(diff_map = diff_map,
                 per_map = per_map,
                 ts = ts,
-                depths = depths))
+                depths = depths,
+                shp_map = shp_map))
   })
   
   observeEvent(comp_data(), {
@@ -1082,11 +1057,19 @@ server <- function(input, output, session) {
     # Adjusting map proportions
     range_map <- range_map(df, input$region_compare)
     
+    if(max(range_map$df$lon) > 180){
+      shp_map <- comp_data()$shp_map |> 
+        st_shift_longitude()
+    }else{
+      shp_map <- comp_data()$shp_map
+    }
+    
     title <- paste0("Difference in climatological mean (1981-2010) ",
                     lookup_comp()$long_name) |>
       str_to_sentence()
     
     return(list(df = range_map$df,
+                shp_map = shp_map,
                 ylim = range_map$ylims,
                 xlim = range_map$xlims,
                 title = title))
@@ -1095,10 +1078,13 @@ server <- function(input, output, session) {
   # Creating first plot
   output$map_compare <- renderPlot({
     df <- comp_maps_diff()$df
+    shp_map <- comp_maps_diff()$shp_map
     
     # Plotting map
     ggplot(df, aes(x = lon, y = lat, fill = vals)) +
       prettymap_theme +
+      geom_sf(inherit.aes = F, data = shp_map, colour = "red", fill = NA, 
+              linewidth = 0.75)+
       coord_sf(ylim = comp_maps_diff()$ylim, xlim = comp_maps_diff()$xlim, 
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_comp()$cb_lab_diff,
@@ -1138,88 +1124,23 @@ server <- function(input, output, session) {
       theme(legend.title = element_blank())
   }, height = 500, width = 800)
   
-  # Catch and effort tab ----------------------------------------------------------
-  # Update `variable_effort` choices based on dataset selection
-  observeEvent(input$catch_effort_select, {
-    new_choices <- if (
-      input$catch_effort_select == "Fishing Effort") effort_variables 
-    else catch_variables
-    updateSelectInput(session, "variable_effort", 
-                      choices = new_choices, selected = new_choices[1])
+  
+  comp_down_data <- reactive({
+    file_path <- list.files(file.path(fishmip_dir, "download_correction"),
+                            pattern = lookup_comp()$ts_file, full.names = T)
   })
 
-  # Loading relevant data based on selection
-  selected_data <- reactive({
-    if (input$catch_effort_select == "Fishing Effort") {
-      effort_regional_ts
-    } else {
-      catch_regional_ts
-    }
-  })
-
-  # Filtered data for plotting and downloading
-  filtered_data <- reactive({
-    req(selected_data()) # Ensure data is available
-    selected_data() |>
-      filter(region == input$region_effort) |>
-      group_by(Year, region, !!sym(input$variable_effort)) |>
-      summarise(value = ifelse(input$catch_effort_select == "Fishing Effort",
-                               sum(NomActive, na.rm = TRUE),
-                               sum(catch, na.rm = TRUE))) |>
-      ungroup() |>
-      filter(value > 0, Year >= 1950) |>
-      mutate(Information = glue("<br>Year: {Year}<br>{input$variable_effort}: 
-                              {get(input$variable_effort)}<br>Value: {value}"))
-  })
-
-  output$ts_effort <- renderPlotly({
-    # Plotting data
-    df <- filtered_data() |>
-      group_by(region, !!sym(input$variable_effort)) |>
-      complete(Year = full_seq(Year, 1), fill = list(value = 0)) |>
-      ungroup()
-
-    # Define y-axis label based on dataset choice
-    y_axis_label <- if (
-      input$catch_effort_select == "Fishing Effort") "Nominal Fishing Hours" 
-    else "Catch (tonnes)"
-
-    # Create ggplot
-    p <- ggplot(df, aes(x = Year, y = value, fill = !!sym(input$variable_effort)
-                        , label = Information)) +
-      geom_area(stat = "identity", alpha = 0.85, na.rm = TRUE) +
-      prettyts_theme +
-      labs(y = y_axis_label, x = "Year")
-
-    # Convert ggplot to an interactive plot with ggplotly
-    ggplotly(p, tooltip = 'label') |>
-      layout(
-        height = 600,
-        width = 800,
-        legend = list(
-          orientation = "h",
-          xanchor = "center",
-          x = 0.5,
-          yanchor = "top",
-          y = -0.4,
-          font = list(size = 10),
-          traceorder = "normal"
-        ),
-        legendtitle = list(text = ""),
-        margin = list(l = 20, r = 20, t = 20, b = 20)
-      )
-  })
-
-  output$download_data <- downloadHandler(
-    filename = function() {
-      paste("filtered_data_", input$region_effort, ".csv", sep = "")
+  output$download_comp <- downloadHandler(
+    filename = function(){
+      basename(comp_down_data())
     },
-    content = function(file) {
-      data <- filtered_data() |>
-        mutate(data_type = input$catch_effort_select) |>
-        dplyr::select(-Information)
-      validate(need(nrow(data) > 0, "No data available for download."))
-      write.csv(data, file, row.names = FALSE)
+    # Creating name of download file based on original file name
+    content = function(file){
+      id <- showNotification("Preparing Download...", type = "message",
+                             duration = NULL, closeButton = F)
+      df <- comp_down_data()
+      file.copy(df, file)
+      on.exit(removeNotification(id), add = TRUE)
     }
   )
 }

@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13902156.svg)](https://doi.org/10.5281/zenodo.13902156)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14004703.svg)](https://doi.org/10.5281/zenodo.14004703)
 
 
 # FishMIP Input Explorer for Regional Ecosystem Models
@@ -12,7 +12,7 @@ To achieve this objective, FishMIP has designed model evaluation protocols, incl
 ## Shiny app
 This repository contains all code developed to produce the shiny app supporting this publication. The shiny app is designed to allow regional modelers to explore all environmental outputs available in the GFDL-MOM6-COBALT2 model used to forced ecosystem models under Protocol 3a. 
 
-The [FishMIP Input Explorer Shiny app](https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/) is under continuous development, but it is ready for public use. Users can select the FishMIP regional model and environmental variable of interest to see a map and time series of the climatological mean calculated from GFDL-MOM6-COBALT2 model outputs (1961-2010) and World Ocean Atlas 2023 (WOA 2023) data (1981-2010). Users can also see the difference between these two products over the common period (1981-2010). Finally, the **Download** button allows users to download the original GFDL-MOM6-COBALT2 model outputs and WOA 2023 data cropped within the boundaries of the regional model of interest.  
+The [FishMIP Input Explorer Shiny app](https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/) is under continuous development, but it is ready for public use. Users can select the FishMIP regional model and environmental variable of interest to see a map and time series of the climatological mean calculated from GFDL-MOM6-COBALT2 model outputs (1961-2010) and World Ocean Atlas 2023 (WOA 2023) data (1981-2010). Users can also see the difference between these two products over the common period (1981-2010). Finally, the **Download** button allows users to download the original GFDL-MOM6-COBALT2 model outputs and WOA 2023 data cropped within the boundaries of the regional model of interest. While the **Download** button in the comparison tab gives users access to monthly climatologies calculated from GFDL-MOM6-COBALT2 and WOA data  for the same period (1981-2010) and using the same grid, which can be used to perform bias correction if needed.  
   
 ## Do you have suggestions or comments?
 If you have any suggestions on how to improve this app or if you spotted something that is not quite right, you can [create an issue](https://github.com/Fish-MIP/FishMIP_Input_Explorer/issues) in this repository. Provide as much detail as possible so we can address your request easily.  

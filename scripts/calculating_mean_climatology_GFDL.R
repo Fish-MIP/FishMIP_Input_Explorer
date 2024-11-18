@@ -38,7 +38,9 @@ if(!dir.exists(base_out_ts)){
 
 #Getting list of parquet files available
 par_list <- list.files(file.path(base_dir, "download_data"), 
-                       pattern = "parquet$", full.names = T)
+                       pattern = "parquet$", full.names = T) |> 
+  #Ignore depth and area files
+  str_subset("areacello|deptho", negate = T)
 
 #Loading area file
 area_df <- file.path("/g/data/vf71/shared_resources/grid_cell_area_ESMs/isimip3a",

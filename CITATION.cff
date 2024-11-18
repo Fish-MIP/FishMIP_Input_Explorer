@@ -18,8 +18,8 @@ authors:
   orcid: "https://orcid.org/0000-0002-5983-2798"
 
 title: "FishMIP input explorer for regional ecosystem modellers"
-version: 1.0.2
-doi: 10.5281/zenodo.13902156
+version: 1.1.0
+doi: 10.5281/zenodo.14004703
 date-released: 2024-10-08
 url: "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/"
 license: Apache v2
