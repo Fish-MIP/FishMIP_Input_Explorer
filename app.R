@@ -47,14 +47,14 @@ woa_variables <- var_metadata |>
   deframe()
 
 # Shapefile with FishMIP regional model boundaries
-fish_reg <- file.path("/home/ubuntu/gem/private/shared_resources/FishMIP_regional_models",
+fish_reg <- file.path("//rd/gem/private/shared_resources/FishMIP_regional_models",
                       "FishMIP_regional_models.shp") |> 
   read_sf() |> 
   mutate(region = str_to_lower(str_remove_all(region, "'")))
 
 # Defining location of relevant data sources ------------------------------
 # Folders containing Earth System Model (ESM) data
-fishmip_dir <- file.path("/home/ubuntu/gem/public/fishmip/ISIMIP3a/InputData/climate",
+fishmip_dir <- file.path("//rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
                          "ocean/obsclim/regional/monthly/historical",
                          "GFDL-MOM6-COBALT2")
 
@@ -72,8 +72,8 @@ map_comp_files <- file.path(fishmip_dir, "comp_maps")
 ts_comp_files <- file.path(fishmip_dir, "comp_ts")
 
 # Getting list of all files within folders
-woa_maps <- "/home/ubuntu/gem/public/fishmip/WOA_data/regional/climatology"
-woa_ts <- "/home/ubuntu/gem/public/fishmip/WOA_data/regional/monthly/ts"
+woa_maps <- "//rd/gem/public/fishmip/WOA_data/regional/climatology"
+woa_ts <- "//rd/gem/public/fishmip/WOA_data/regional/monthly/ts"
 
 # Loading map of the world
 world <- ne_countries(returnclass = "sf", scale = "medium")
