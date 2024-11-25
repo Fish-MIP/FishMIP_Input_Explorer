@@ -23,15 +23,6 @@ region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id,
                         show_col_types = F) |> 
   deframe()
 
-# get list of regions we use for effort/catch data - these just use the actual 
-# names rather than truncated versions above
-effort_catch_region_keys <- read_csv("www/FishMIP_regions_keys.csv", 
-                                     col_select = !id, 
-                        show_col_types = F) |> 
-    dplyr::select(region) |>
-  deframe()
-
-
 # Getting names of environmental variables available with equivalent from WOA
 var_metadata <- read_csv("www/woa_gfdl_var_keys.csv", show_col_types = F) 
 
@@ -47,14 +38,29 @@ woa_variables <- var_metadata |>
   deframe()
 
 # Shapefile with FishMIP regional model boundaries
-fish_reg <- file.path("//rd/gem/private/shared_resources/FishMIP_regional_models",
+fish_reg <- file.path("/rd/gem/private/shared_resources/FishMIP_regional_models",
                       "FishMIP_regional_models.shp") |> 
   read_sf() |> 
   mutate(region = str_to_lower(str_remove_all(region, "'")))
 
+
+# Load catch and effort data
+effort_regional_ts <- file.path("www",
+                                "effort_1950_2017_regional_prepped.parquet") |> 
+  read_parquet()
+  
+catch_regional_ts <- file.path("www",
+                               "catch_1950_2017_regional_prepped.parquet") |> 
+  read_parquet()
+
+# Define variables for effort and catch datasets we use
+effort_variables <- c("Functional Group", "Sector", "Gear")
+catch_variables <- c("Functional Group", "Sector")
+
+
 # Defining location of relevant data sources ------------------------------
 # Folders containing Earth System Model (ESM) data
-fishmip_dir <- file.path("//rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
+fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
                          "ocean/obsclim/regional/monthly/historical",
                          "GFDL-MOM6-COBALT2")
 
@@ -72,8 +78,8 @@ map_comp_files <- file.path(fishmip_dir, "comp_maps")
 ts_comp_files <- file.path(fishmip_dir, "comp_ts")
 
 # Getting list of all files within folders
-woa_maps <- "//rd/gem/public/fishmip/WOA_data/regional/climatology"
-woa_ts <- "//rd/gem/public/fishmip/WOA_data/regional/monthly/ts"
+woa_maps <- "/rd/gem/public/fishmip/WOA_data/regional/climatology"
+woa_ts <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/ts"
 
 # Loading map of the world
 world <- ne_countries(returnclass = "sf", scale = "medium")
@@ -112,17 +118,6 @@ prettyts_theme <- list(theme_bw(),
                              plot.title = element_text(hjust = 0.5, size = 18),
                              legend.position = "bottom", 
                              legend.text = element_text(size = 18)))
-
-# Load catch and effort data
-effort_regional_ts <- read_parquet(file.path("www/",
-                                   "effort_1950_2017_regional_prepped.parquet"))
-catch_regional_ts <- read_parquet(file.path("www/",
-                                  "catch_1950_2017_regional_prepped.parquet"))
-
-# Define variables for effort and catch datasets we use
-effort_variables <- c("Functional Group", "Sector", "Gear")
-catch_variables <- c("Functional Group", "Sector")
-
 
 # Defining functions ------------------------------------------------------
 # Function to improve map ratios for plotting
@@ -482,62 +477,61 @@ ui <- fluidPage(
     ),
     
     ## Catch and effort tab ----------------------------------------------------
-    tabPanel("Explore regional fishing effort and catch",
+    tabPanel("Fishing effort and catch data",
              sidebarLayout(
                sidebarPanel(
                  h4(strong("Instructions:")),
                  
-                 # Choose catch or effort data
-                 p("1. Select dataset to view:"),
-                 selectInput(inputId = "catch_effort_select", label = NULL,
-                             choices = c("Fishing Effort", "Catch"), 
-                             selected = "Fishing Effort"),
-                 
                  # Choose region of interest
-                 p("2. Select a FishMIP region:"),
+                 p("1. Select a FishMIP regional model:"),
                  selectInput(inputId = "region_effort", label = NULL,
-                             choices = effort_catch_region_keys, 
+                             choices = names(region_keys),
                              selected = "East Bass Strait"),
                  
+                 # Choose catch or effort data
+                 p("2. Select dataset to visualise:"),
+                 radioButtons(inputId = "catch_effort_select", label = NULL, 
+                              choiceNames = c("Fishing Effort", 
+                                              "Fisheries Catch"), 
+                              choiceValues = c("effort", "catch"),
+                              selected = "effort"),
+                 
                  # Choose variable of interest
-                 p("3. Select variable to view:"),
+                 p("3. Select how data should be classified in the plot:"),
                  selectInput(inputId = "variable_effort", 
                              label = NULL,
                              choices = effort_variables,
                              selected = "Functional Group"),
                  
                  # Inline layout for download button
-             
-                   p(em("Optional: "), "Get a copy of the data used 
-                   to create 
-                   these plots by clicking the 'Download' button below"),
-                    downloadButton(outputId = "download_data", 
-                                            label = "Download")
-                 
-               ),
-              mainPanel(br(),
-                "Figures shown in this tab use fishing effort data from", 
+                 p(em("Optional: "), "Get a copy of the data used to create 
+                 these plots by clicking the 'Download' button below."),
+                 downloadButton(outputId = "download_data", label = "Download")
+                 ),
+               mainPanel(
+                 br(),
+                 "The fishing effort data used to create plots in this tab were
+                 obtained from 'A database of mapped global fishing activity 
+                 1950–2017' ",
+                 tags$a(href = "https://www.nature.com/articles/s41597-023-02824-6", 
+                        "(Rousseau et al. 2024)."), 
+                  "The catch data came from 'Global Fisheries Landings V4.0' ", 
                 tags$a(href = 
-                  "https://www.nature.com/articles/s41597-023-02824-6", 
-                  "A database of mapped global fishing activity 1950–2017 
-                  (Rousseau et al. 2024)"), 
-                  "and catch data from ", 
-                tags$a(href = 
-                  "https://metadata.imas.utas.edu.au/geonetwork/srv/api
-                  /records/5c4590d3-a45a-4d37-bf8b-ecd145cb356d?language=eng",
-                  "Global Fisheries Landings V4.0 (Watson 2017) "),
-                         br(),
-                         tabPanel("",
-                              mainPanel(
-                                br(), 
-                                withLoader(plotlyOutput(outputId = "ts_effort", 
-                                            width = "100%", height = "500px"),
-                                            type = "html", loader = "myloader")
-                                  )
-                         )
+                         "https://metadata.imas.utas.edu.au/geonetwork/srv/api
+                       /records/5c4590d3-a45a-4d37-bf8b-ecd145cb356d?language=eng",
+                  "(Watson 2017)."),
+                br(),
+                tabPanel("",
+                         mainPanel(
+                           br(), 
+                           withLoader(plotlyOutput(outputId = "ts_effort", 
+                                                   width = "100%", 
+                                                   height = "500px"),
+                                      type = "html", loader = "myloader")
+                           ))
+                )
                )
-             )
-    ),
+             ),
     
     ## About tab ---------------------------------------------------------------
     tabPanel(title = "About",
@@ -546,9 +540,9 @@ ui <- fluidPage(
                h3(strong("About this website")),
                p("This tool allows regional modellers to visualise 
                  environmental data from GFDL-MOM6-COBALT2 and from 
-                 observations to determine if bias correction (Step 3 below) needs to be 
-                 applied to the data prior to its use as forcings of a regional
-                 marine ecosystem model."),
+                 observations to determine if bias correction (Step 3 below) 
+                 needs to be applied to the data prior to its use as forcings of
+                 a regional marine ecosystem model."),
                br(),
                img(src = "FishMIP_regional_model_workflow.png", height = 600,
                    width = 715, style = "display: block; 
@@ -1228,34 +1222,36 @@ server <- function(input, output, session) {
   
   ## Catch and effort tab ------------------------------------------------------
   # Update `variable_effort` choices based on dataset selection; this is because
-  # the catch datset does not have a "Gear" column
-  observeEvent(input$catch_effort_select, {
-    new_choices <- if(input$catch_effort_select == "Fishing Effort") { 
-      effort_variables 
-    } else { 
-      catch_variables 
-    }
-    
-    updateSelectInput(session, "variable_effort", 
-                      choices = new_choices, selected = head(new_choices, 1))
-  })
-  
+  # the catch dataset does not have a "Gear" column
   # Loading relevant data based on selection
   selected_data <- reactive({
-    if(input$catch_effort_select == "Fishing Effort") {
-      effort_regional_ts
-    } else {
-      catch_regional_ts
+    if(input$catch_effort_select == "effort"){
+      data <- effort_regional_ts
+      groups <- effort_variables
+      y_axis_label <- "Nominal Fishing Hours"
+    }else{
+      data <- catch_regional_ts
+      groups <- catch_variables
+      y_axis_label <- "Catch (tonnes)"
     }
+    return(list(data = data,
+                groups = groups,
+                y_axis = y_axis_label))
+  })
+  
+  observeEvent(selected_data(), {
+    updateSelectInput(session, "variable_effort",
+                      choices = selected_data()$groups, 
+                      selected = selected_data()$groups[1])
   })
   
   # Filtered data for plotting and downloading
   filtered_data <- reactive({
-    req(selected_data()) 
-    selected_data() |>
+    req(selected_data()$data) 
+    selected_data()$data |>
       filter(region == input$region_effort) |>
       group_by(Year, region, !!sym(input$variable_effort)) |>
-      summarise(value = ifelse(input$catch_effort_select == "Fishing Effort",
+      summarise(value = ifelse(input$catch_effort_select == "effort",
                                sum(NomActive, na.rm = TRUE),
                                sum(catch, na.rm = TRUE)), .groups = "drop") |>
       ungroup() |>
@@ -1270,20 +1266,16 @@ server <- function(input, output, session) {
       complete(Year = full_seq(Year, 1), fill = list(value = 0)) |>
       ungroup()
     
-    # Define y-axis label based on dataset choice
-    y_axis_label <- if (
-      input$catch_effort_select == "Fishing Effort") "Nominal Fishing Hours" 
-    else "Catch (tonnes)"
-    
     # Create ggplot
-    p <- ggplot(df, aes(x = Year, y = value, fill = !!sym(input$variable_effort)
-                        , label = Information)) +
+    p <- ggplot(df, aes(x = Year, y = value,
+                        fill = !!sym(input$variable_effort), 
+                        label = Information)) +
       geom_area(stat = "identity", alpha = 0.85, na.rm = TRUE) +
       prettyts_theme +
-      labs(y = y_axis_label, x = "Year")
+      labs(y = selected_data()$y_axis, x = "Year")
     
     # Convert ggplot to an interactive plot with ggplotly
-    ggplotly(p, tooltip = 'label', height = 600, width = 800,) |>
+    ggplotly(p, tooltip = 'label', height = 600, width = 800) |>
       layout(
         legend = list(
           orientation = "h",
@@ -1305,7 +1297,7 @@ server <- function(input, output, session) {
     content = function(file) {
       data <- filtered_data() |>
         mutate(data_type = input$catch_effort_select) |>
-        dplyr::select(-Information)
+        select(-Information)
       validate(need(nrow(data) > 0, "No data available for download."))
       write.csv(data, file, row.names = FALSE)
     }
