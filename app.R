@@ -13,9 +13,10 @@ library(tidyr)
 library(sf)
 library(ggplot2)
 library(plotly)
-library(data.table)
+library(RColorBrewer)
 library(glue)
-options(scipen = 99)
+library(forcats)
+options(scipen = 0)
 
 # Loading supporting files ------------------------------------------------
 # Get list of all regions available
@@ -45,13 +46,10 @@ fish_reg <- file.path("/rd/gem/private/shared_resources/FishMIP_regional_models"
 
 
 # Load catch and effort data
-effort_regional_ts <- file.path("www",
-                                "effort_1950_2017_regional_prepped.parquet") |> 
-  read_parquet()
+effort_regional_ts <- read_parquet(
+  "www/effort_1950-2017_FishMIP_regions.parquet")
   
-catch_regional_ts <- file.path("www",
-                               "catch_1950_2017_regional_prepped.parquet") |> 
-  read_parquet()
+catch_regional_ts <- read_parquet("www/catch_1950-2017_FishMIP_regions.parquet")
 
 # Define variables for effort and catch datasets we use
 effort_variables <- c("Functional Group", "Sector", "Gear")
@@ -84,6 +82,11 @@ woa_ts <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/ts"
 # Loading map of the world
 world <- ne_countries(returnclass = "sf", scale = "medium")
 
+#Defining palette to be used with effort and catch data
+mypal <- c(brewer.pal(n = 9, name = "Set1"), brewer.pal(n = 12, name = "Set3"),
+           brewer.pal(n = 8, name = "Accent"))
+
+#Defining plot themes
 prettymap_theme <- list(geom_tile(),
                         theme_classic(),
                         scale_fill_viridis_c(na.value = NA),
@@ -118,6 +121,27 @@ prettyts_theme <- list(theme_bw(),
                              plot.title = element_text(hjust = 0.5, size = 18),
                              legend.position = "bottom", 
                              legend.text = element_text(size = 18)))
+
+
+fishing_theme <- list(geom_area(stat = "identity", alpha = 0.85,
+                                position = "stack"),
+                      scale_x_continuous(breaks = seq(1950, 2017, 5)),
+                      scale_fill_manual(values = mypal),
+                      theme_bw(),
+                      guides(fill = guide_legend(title.position = "top",
+                                                 title.hjust = 0.5)),
+                      theme(axis.text.y = element_text(size = 12),
+                            axis.text.x = element_text(angle = 45, vjust = 1,
+                                                       hjust = 1, size = 12),
+                            axis.title.y = element_text(size = 12),
+                            axis.title.x = element_blank(),
+                            legend.position = "bottom",
+                            legend.direction = "horizontal",
+                            legend.title = element_text(size = 12,
+                                                        face = "bold"),
+                            legend.text = element_text(size = 12)))
+
+
 
 # Defining functions ------------------------------------------------------
 # Function to improve map ratios for plotting
@@ -510,16 +534,16 @@ ui <- fluidPage(
                  ),
                mainPanel(
                  br(),
-                 "The fishing effort data used to create plots in this tab were
-                 obtained from 'A database of mapped global fishing activity 
-                 1950–2017' ",
-                 tags$a(href = "https://www.nature.com/articles/s41597-023-02824-6", 
-                        "(Rousseau et al. 2024)."), 
-                  "The catch data came from 'Global Fisheries Landings V4.0' ", 
-                tags$a(href = 
-                         "https://metadata.imas.utas.edu.au/geonetwork/srv/api
-                       /records/5c4590d3-a45a-4d37-bf8b-ecd145cb356d?language=eng",
-                  "(Watson 2017)."),
+                 "The fishing effort and catch data used to create plots in this
+                 tab were obtained from 'ISIMIP3a reconstructed fishing activity
+                 data (v1.0)'",
+                 tags$a(href = "https://data.isimip.org/10.48364/ISIMIP.240282", 
+                        "(Novaglio et al. 2024)."),
+                 br(),
+                 br(),
+                 "The fishing effort and catch data start in 1950, but the 
+                 fishing effort forcing was reconstructed starting in 1841, 
+                 which is available for download on the left panel.",
                 br(),
                 tabPanel("",
                          mainPanel(
@@ -1228,11 +1252,11 @@ server <- function(input, output, session) {
     if(input$catch_effort_select == "effort"){
       data <- effort_regional_ts
       groups <- effort_variables
-      y_axis_label <- "Nominal Fishing Hours"
+      y_axis_label <- "Nominal fishing effort\n(million kW days)"
     }else{
       data <- catch_regional_ts
       groups <- catch_variables
-      y_axis_label <- "Catch (tonnes)"
+      y_axis_label <- "Catch (thousand tonnes)"
     }
     return(list(data = data,
                 groups = groups,
@@ -1247,46 +1271,56 @@ server <- function(input, output, session) {
   
   # Filtered data for plotting and downloading
   filtered_data <- reactive({
-    req(selected_data()$data) 
-    selected_data()$data |>
-      filter(region == input$region_effort) |>
-      group_by(Year, region, !!sym(input$variable_effort)) |>
+    req(selected_data()$data)
+    df <- selected_data()$data |>
+      filter(region == input$region_effort) 
+    if(input$variable_effort == "Functional Group"){
+      df <- df |> 
+        group_by(year, !!sym(input$variable_effort), f_group_index)
+    }else{
+      df <- df |>
+        group_by(year, !!sym(input$variable_effort))
+    }
+    df |>
       summarise(value = ifelse(input$catch_effort_select == "effort",
-                               sum(NomActive, na.rm = TRUE),
-                               sum(catch, na.rm = TRUE)), .groups = "drop") |>
+                               sum(nom_active_million, na.rm = TRUE),
+                               sum(catch_thousands, na.rm = TRUE))) |>
       ungroup() |>
-      mutate(Information = glue("<br>Year: {Year}<br>{input$variable_effort}: 
+      mutate(information = glue("<br>Year: {year}<br>{input$variable_effort}: 
                               {get(input$variable_effort)}<br>Value: {value}"))
   })
   
   output$ts_effort <- renderPlotly({
     # Plotting data
-    df <- filtered_data() |>
-      group_by(region, !!sym(input$variable_effort)) |>
-      complete(Year = full_seq(Year, 1), fill = list(value = 0)) |>
-      ungroup()
+    df <- filtered_data()
     
     # Create ggplot
-    p <- ggplot(df, aes(x = Year, y = value,
+    
+  if("f_group_index" %in% names(df)){
+    p <- ggplot(df, aes(x = year, y = value, 
+                        fill = fct_reorder(!!sym(input$variable_effort),
+                                           f_group_index),
+                        label = information))+
+      labs(y = selected_data()$y_axis)+
+      fishing_theme+
+      guides(fill = guide_legend(title.position = "top", 
+                                 title = "Functional Group",
+                                 title.hjust = 0.5))
+  }else{
+    p <- ggplot(df, aes(x = year, y = value, 
                         fill = !!sym(input$variable_effort), 
-                        label = Information)) +
-      geom_area(stat = "identity", alpha = 0.85, na.rm = TRUE) +
-      prettyts_theme +
-      labs(y = selected_data()$y_axis, x = "Year")
+                        label = information))+
+      labs(y = selected_data()$y_axis)+
+      fishing_theme
+  }
     
     # Convert ggplot to an interactive plot with ggplotly
     ggplotly(p, tooltip = 'label', height = 600, width = 800) |>
       layout(
-        legend = list(
-          orientation = "h",
-          xanchor = "center",
-          x = 0.5,
-          yanchor = "top",
-          y = -0.4,
-          font = list(size = 10),
-          traceorder = "normal"
-        ),
-        margin = list(l = 20, r = 20, t = 20, b = 20)
+        legend = list(orientation = "h", xanchor = "center", x = 0.5,
+                      yanchor = "top", y = -0.2, font = list(size = 12),
+                      traceorder = "normal", title = list(side = "top")),
+        margin = list(l = 20, r = 20, t = 10, b = 10)
       )
   })
   
