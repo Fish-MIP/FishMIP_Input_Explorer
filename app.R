@@ -609,7 +609,8 @@ ui <- fluidPage(
                  em("xarray"), " library to open these files. If you use R, we 
                  recommend the ", em("Rarrr"), " library. For instructions on 
                  how to load these files in R, refer to ",
-                 tags$a(href = "https://github.com/Fish-MIP/FishMIP_extracting-data/blob/main/scripts/loading_zarr_files.md", 
+                 tags$a(href = 
+                          "https://github.com/Fish-MIP/FishMIP_extracting-data/blob/main/scripts/loading_zarr_files.md", 
                         "this example.")),
                br(),
                h3(strong("How should I cite data from this site?")),
@@ -617,7 +618,7 @@ ui <- fluidPage(
                  this interactive tool using the 'Download' button included 
                  under each tab. As a condition of this tool to access data, 
                  you must cite its use. Please use the following citations:"),
-               p("- Fierro-Arcos, D., Blanchard, J. L., Flynn, C., 
+               p("- Fierro-Arcos, D., Blanchard, J. L., Clawson, G., Flynn, C., 
                  Ortega Cisneros, K., Reimer, T. (2024). FishMIP input explorer 
                  for regional ecosystem modellers. ", 
                  tags$a(href = "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/")),
@@ -642,6 +643,12 @@ ui <- fluidPage(
                  tags$a(href = 
                           "https://www.ncei.noaa.gov/products/world-ocean-atlas", 
                "product documentation"), " for the most appropriate citation."),
+               p("The fishing and catch data should be cited as follows:"),
+               p("- Camilla Novaglio, Yannick Rousseau, Reg A. Watson, Julia L.
+                 Blanchard (2024): ISIMIP3a reconstructed fishing activity data 
+                 (v1.0). ISIMIP Repository. DOI: ", 
+                 tags$a(href = "https://doi.org/10.48364/ISIMIP.240282",
+                        "10.48364/ISIMIP.240282")),
                br(),
                h3(strong("How can I contact you?")),
                p("If you are interested in our regional modelling work and would like to be 
@@ -1324,19 +1331,62 @@ server <- function(input, output, session) {
       )
   })
   
+  download_fishing_data <- reactive({
+    base_eff_cat <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData",
+                              "effort_catch_data")
+    regname <- str_to_lower(input$region_effort) |> 
+      str_replace_all(" ", "-") |> 
+      str_remove_all("'")
+    
+    temp_dir <- tempdir()
+    #Ensure temporary folder is empty
+    file.remove(list.files(temp_dir, full.names = T))
+    
+    #Copy SAUP file to temporary folder
+    file.copy(file.path(base_eff_cat, "SAUPtoCountry.csv"), temp_dir)
+    
+    if(input$catch_effort_select == "effort"){
+      da <- read_parquet(
+        file.path(base_eff_cat, 
+                  "effort_histsoc_1841_2017_regional_models.parquet"))
+      
+      fout <- paste0("effort_histsoc_1841_2017_", regname)
+      #Copy dictionary file to temporary folder
+      file.copy(file.path(base_eff_cat, "effort_dictionary.parquet"), temp_dir)
+    }else{
+      da <- read_parquet(
+        file.path(base_eff_cat, 
+                  "calibration_catch_histsoc_1850_2017_regional_models.parquet"))
+      #Copy dictionary file to temporary folder
+      file.copy(file.path(base_eff_cat, "catch_dictionary.parquet"), temp_dir)
+      fout <- paste0("calibration_catch_histsoc_1850_2017_", regname)
+    }
+    
+    #Extract rows for region of interest
+    da |> 
+      filter(region == input$region_effort) |> 
+      write_parquet(file.path(temp_dir, paste0(fout, ".parquet")))
+    
+    zip_out <- file.path(temp_dir, paste0(fout, ".zip"))
+    
+    zip(zip_out, list.files(temp_dir, pattern = ".parquet|.csv",
+                            full.names = T))
+   
+    return(zip_out)
+  })
+  
   output$download_data <- downloadHandler(
     filename = function() {
-      paste("filtered_data_", input$region_effort, ".csv", sep = "")
+      basename(download_fishing_data())
     },
     content = function(file) {
-      data <- filtered_data() |>
-        mutate(data_type = input$catch_effort_select) |>
-        select(-Information)
-      validate(need(nrow(data) > 0, "No data available for download."))
-      write.csv(data, file, row.names = FALSE)
+      id <- showNotification("Preparing Download...", type = "message",
+                             duration = NULL, closeButton = F)
+      df <- download_fishing_data()
+      file.copy(df, file)
+      on.exit(removeNotification(id), add = TRUE)
     }
   )
-  
 }
 
 shinyApp(ui = ui, server = server)
