@@ -529,7 +529,10 @@ ui <- fluidPage(
                  
                  # Inline layout for download button
                  p(em("Optional: "), "Get a copy of the data used to create 
-                 these plots by clicking the 'Download' button below."),
+                   these plots by clicking the 'Download' button below. Note 
+                   that the compressed downloaded folder also includes a 
+                   dictionary to interpret the column names in the fishing data
+                   and keys to interpret country codes."),
                  downloadButton(outputId = "download_data", label = "Download")
                  ),
                mainPanel(
