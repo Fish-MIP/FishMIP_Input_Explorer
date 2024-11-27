@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14004703.svg)](https://doi.org/10.5281/zenodo.14004703)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14226833.svg)](https://doi.org/10.5281/zenodo.14226833)
 
 
 # FishMIP Input Explorer for Regional Ecosystem Models

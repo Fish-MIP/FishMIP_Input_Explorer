@@ -22,7 +22,7 @@ authors:
 
 title: "FishMIP input explorer for regional ecosystem modellers"
 version: 1.2.0
-doi: TBA
+doi: 10.5281/zenodo.14226833
 date-released: 2024-11-27
 url: "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/"
 license: Apache v2
