@@ -1,38 +1,41 @@
-id,region,lookup
-1,Baltic Sea EwE,baltic-sea-ewe
-2,Baltic Sea Mizer,baltic-sea-mizer
-3,Brazil NE,brazil-ne
-4,Central North Pacific,central-north-pacific
-5,Central South Pacific,central-south-pacific
-6,Chatham Rise,chatham-rise
-7,Cook Strait,cook-strait
-8,East Antarctica Atlantis,east-antarctica-atlantis
-9,East Antarctica EwE,east-antarctica-ewe
-10,East Bass Strait,east-bass-strait
-11,East Bering Sea Mizer,east-bering-sea-mizer
-12,East Bering Sea Rpath,east-bering-sea-rpath
-13,East Scotian Shelf,east-scotian-shelf
-14,Gulf Alaska,gulf-alaska
-15,Gulf of Guinea,gulf-of-guinea
-16,Hawai'i based Longline,hawaii-based-longline
-17,Kerguelen EwE,kerguelen-ewe
-18,Kerguelen Mizer,kerguelen-mizer
-19,Main Hawaiian Islands,main-hawaiian-islands
-20,Mediterranean Sea EwE,mediterranean-sea-ewe
-21,Mediterranean Sea OSMOSE,mediterranean-sea-osmose
-22,Nordic and Barents Seas,nordic-and-barents-seas
-23,North Humboldt,north-humboldt
-24,North Sea EwE Mizer,north-sea-ewe-mizer
-25,North Sea OSMOSE,north-sea-osmose
-26,Northern California Current,northern-california-current
-27,Northern Gulf of Alaska,northern-gulf-of-alaska
-28,NorthWestern Mediterranean Sea,northwestern-mediterranean-sea
-29,Prydz Bay,prydz-bay
-30,Puget Sound Atlantis,puget-sound-atlantis
-31,Ross Sea MBTM,ross-sea-mbtm
-32,SE Australia Atlantis,se-australia-atlantis
-33,SE Australia Mizer,se-australia-mizer
-34,Southern Benguela,southern-benguela
-35,Southern Ocean,southern-ocean
-36,Tasman and Golden Bays,tasman-and-golden-bays
-37,Western Mediterranean Sea,western-mediterranean-sea
+id,region
+1,Baltic Sea EwE
+2,Baltic Sea Mizer
+3,Brazil NE
+4,Central North Pacific
+5,Central South Pacific
+6,Chatham Rise
+7,Cook Strait
+8,East Antarctica Atlantis
+9,East Antarctica EwE
+10,East Bass Strait
+11,East Bering Sea EcoState
+12,East Bering Sea Mizer
+13,East Bering Sea Rpath
+14,East Scotian Shelf
+15,Grand Banks Newfoundland
+16,Gulf Alaska
+17,Gulf of Guinea
+18,Hawai'i based Longline
+19,Kerguelen EwE
+20,Kerguelen Mizer
+21,Main Hawaiian Islands
+22,Mediterranean Sea EwE
+23,Mediterranean Sea OSMOSE
+24,Newfoundland and Labrador Shelf
+25,Nordic and Barents Seas
+26,North Humboldt
+27,North Sea EwE Mizer
+28,North Sea OSMOSE
+29,Northern California Current
+30,Northern Gulf of Alaska
+31,NorthWestern Mediterranean Sea
+32,Prydz Bay
+33,Puget Sound Atlantis
+34,Ross Sea MBTM
+35,SE Australia Atlantis
+36,SE Australia Mizer
+37,Southern Benguela
+38,Southern Ocean
+39,Tasman and Golden Bays
+40,Western Mediterranean Sea

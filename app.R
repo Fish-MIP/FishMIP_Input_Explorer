@@ -12,9 +12,13 @@ library(rnaturalearth)
 library(tidyr)
 library(sf)
 library(ggplot2)
-options(scipen = 99)
+library(plotly)
+library(RColorBrewer)
+library(glue)
+library(forcats)
+options(scipen = 0)
 
-# Setting up  -------------------------------------------------------------
+# Loading supporting files ------------------------------------------------
 # Get list of all regions available
 region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id, 
                         show_col_types = F) |> 
@@ -40,7 +44,19 @@ fish_reg <- file.path("/rd/gem/private/shared_resources/FishMIP_regional_models"
   read_sf() |> 
   mutate(region = str_to_lower(str_remove_all(region, "'")))
 
-# First tab data ----------------------------------------------------------
+
+# Load catch and effort data
+effort_regional_ts <- read_parquet(
+  "www/effort_1950-2017_FishMIP_regions.parquet")
+  
+catch_regional_ts <- read_parquet("www/catch_1950-2017_FishMIP_regions.parquet")
+
+# Define variables for effort and catch datasets we use
+effort_variables <- c("Functional Group", "Sector", "Gear")
+catch_variables <- c("Functional Group", "Sector")
+
+
+# Defining location of relevant data sources ------------------------------
 # Folders containing Earth System Model (ESM) data
 fishmip_dir <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData/climate",
                          "ocean/obsclim/regional/monthly/historical",
@@ -66,6 +82,11 @@ woa_ts <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/ts"
 # Loading map of the world
 world <- ne_countries(returnclass = "sf", scale = "medium")
 
+#Defining palette to be used with effort and catch data
+mypal <- c(brewer.pal(n = 9, name = "Set1"), brewer.pal(n = 12, name = "Set3"),
+           brewer.pal(n = 8, name = "Accent"))
+
+#Defining plot themes
 prettymap_theme <- list(geom_tile(),
                         theme_classic(),
                         scale_fill_viridis_c(na.value = NA),
@@ -100,6 +121,26 @@ prettyts_theme <- list(theme_bw(),
                              plot.title = element_text(hjust = 0.5, size = 18),
                              legend.position = "bottom", 
                              legend.text = element_text(size = 18)))
+
+
+fishing_theme <- list(geom_area(stat = "identity", alpha = 0.85,
+                                position = "stack"),
+                      scale_x_continuous(breaks = seq(1950, 2017, 5)),
+                      scale_fill_manual(values = mypal),
+                      theme_bw(),
+                      guides(fill = guide_legend(title.position = "top",
+                                                 title.hjust = 0.5)),
+                      theme(axis.text.y = element_text(size = 12),
+                            axis.text.x = element_text(angle = 45, vjust = 1,
+                                                       hjust = 1, size = 12),
+                            axis.title.y = element_text(size = 12),
+                            axis.title.x = element_blank(),
+                            legend.position = "bottom",
+                            legend.direction = "horizontal",
+                            legend.title = element_text(size = 12,
+                                                        face = "bold"),
+                            legend.text = element_text(size = 12)))
+
 
 
 # Defining functions ------------------------------------------------------
@@ -210,7 +251,6 @@ ui <- fluidPage(
                  p("3b. Click on the ", strong('Time series plot'), 
                  " tab to see a time series of the area-weighted monthly
                      mean and the linear temporal trend."),
-                 
                  p(em("Optional: "), "Get a copy of the data used to create 
                    these plots by clicking the 'Download' button below."),
                  # Download option
@@ -219,22 +259,32 @@ ui <- fluidPage(
                ),
                mainPanel(
                  br(),
-                 verbatimTextOutput("test"),
-                 "Figures shown in this tab use the ", 
+                 "All figures shown in this tab are based on the ", 
                  em("Observation-based climate related forcing"), " (obsclim) 
-                 outputs from the GFDL-MOM6-COBALT2 model. These outputs were
-                 obtained from the ", 
-                 tags$a(href = 
-                          "https://data.isimip.org/search/tree/ISIMIP3a/InputData/climate/ocean/gfdl-mom6-cobalt2/obsclim/", 
+                 outputs from the GFDL-MOM6-COBALT2 model. These data were 
+                 originally obtained from the ", 
+                 tags$a(href = paste0("https://data.isimip.org/search/tree/",
+                                      "ISIMIP3a/InputData/climate/ocean/",
+                                      "gfdl-mom6-cobalt2/obsclim/"), 
                         "ISIMIP Data Repository."),
                  br(), br(),
-                 "The climatological map shows the mean conditions for the 
-                 environmental variable selected on the left panel. These 
-                 climatologies use the entire period covered by the model: 
-                 1961-2010.",
+                 "The ", em("Climatological map"), " tab below shows the mean 
+                 climatology (1961-2010) for the environmental variable and 
+                 within the boundaries of the regional model of interest 
+                 selected on the left.",
                  br(), br(),
-                 "Time series show the weighted mean for each time step in the 
-                 model data. We used grid cell area as weighting.",  
+                 "The ", em("Time series plot"), "tab below shows the 
+                 area-weighted monthly mean between 1961 and 2010.",  
+                 br(), br(),
+                 strong("Note: "), "The variable names and units shown in the
+                 dropdown list and plots come from the GFDL-MOM6-COBALT2 model. 
+                 We have chosen not apply any transformation to the original 
+                 model outputs. Instead, we summarised data so we could create 
+                 the map and time series plots within the limits of all FishMIP 
+                 regional models. If your model requires environmental data to 
+                 be in a unit or grid that is different to the one available in 
+                 the GFDL-MOM6-COBALT2 model, you can download the data from 
+                 this website and post-process it to meet your needs.",
                  br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map",
@@ -303,27 +353,34 @@ ui <- fluidPage(
                  tags$a(href = 
                           "https://www.ncei.noaa.gov/products/world-ocean-atlas", 
                         "World Ocean Atlas 2023 (WOA23)"), 
-                 ", specifically we used the ", 
-                 em("objectively analysed climatologies"), "field to create the
-                 climatological maps and time series, and the ",
-                 em("number of observations "), "field for the maps available in
-                 the sub-tab under the same name.",  
+                 ". We used the ", em("objectively analysed climatologies"), 
+                 "field to create the climatological maps and area-weighted 
+                 monthly climatology time series plot. While, the ",
+                 em("number of observations "), "variable was used to create the
+                 maps shown in the sub-tab under the same name.",  
                  br(), br(),
-                 "The maps in this tab show WOA23 data as is, data was extracted
-                 within the boundaries of FishMIP regional models and no further
-                 data processing was done. You can download this data using 
-                 the ", em('Download'), " button on the left. Note that if you 
-                 would like to compare WOA23 data to GFDL outputs or any other 
-                 data product, you will need to regrid the WOA23 data to match 
-                 the data you are comparing it to. We have an ",
-                 tags$a(href = "https://github.com/Fish-MIP/processing_WOA_data/blob/main/scripts/P_regridding_woa_data.ipynb",
-                        "example notebook"), " showing you step by step how to 
-                 regrid data.",
+                 strong("Note: "), "The variable names and units shown in the
+                 dropdown list and plots come from the WOA23. We have chosen not
+                 apply any transformation to the original data. Instead, we 
+                 summarised data so we could create maps and time series plots
+                 within the limits of all FishMIP regional models. If your model
+                 requires environmental data to be in a unit or grid that is 
+                 different to the one available in the WOA23a you can download 
+                 the data from this website and post-process it to meet your 
+                 needs.",
                  br(), br(),
-                 "For time series plots we weighted the monthly climatology by
-                 the area of the grid cells.",
-                 br(),
-                 br(),
+                 "For some regions, the WOA23 dataset may have a very limited 
+                 number of observations and so it may not offer the most 
+                 realistic representation of your area of interest. In this 
+                 case, you may choose to use a different observational product
+                 to assess the performance of GFDL-MOM6-COBALT2 outputs. We have
+                 an ", tags$a(href = 
+                                paste0("https://github.com/Fish-MIP/",
+                                       "processing_WOA_data/blob/main/scripts/",
+                                       "P_regridding_woa_data.ipynb"),
+                        "example notebook"), " showing how you can regrid this
+                 data to match the grid used by the GFDL-MOM6-COBALT2 model.",
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map", 
                             mainPanel(
@@ -418,7 +475,7 @@ ui <- fluidPage(
                  br(),
                  "This means that positive values in the maps identify areas 
                  where GFDL overestimated mean conditions.",
-                 br(),
+                 br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological maps",
                             mainPanel(
@@ -442,6 +499,67 @@ ui <- fluidPage(
                )
              )
     ),
+    
+    ## Catch and effort tab ----------------------------------------------------
+    tabPanel("Fishing effort and catch data",
+             sidebarLayout(
+               sidebarPanel(
+                 h4(strong("Instructions:")),
+                 
+                 # Choose region of interest
+                 p("1. Select a FishMIP regional model:"),
+                 selectInput(inputId = "region_effort", label = NULL,
+                             choices = names(region_keys),
+                             selected = "East Bass Strait"),
+                 
+                 # Choose catch or effort data
+                 p("2. Select dataset to visualise:"),
+                 radioButtons(inputId = "catch_effort_select", label = NULL, 
+                              choiceNames = c("Fishing Effort", 
+                                              "Fisheries Catch"), 
+                              choiceValues = c("effort", "catch"),
+                              selected = "effort"),
+                 
+                 # Choose variable of interest
+                 p("3. Select how data should be classified in the plot:"),
+                 selectInput(inputId = "variable_effort", 
+                             label = NULL,
+                             choices = effort_variables,
+                             selected = "Functional Group"),
+                 
+                 # Inline layout for download button
+                 p(em("Optional: "), "Get a copy of the data used to create 
+                   these plots by clicking the 'Download' button below. Note 
+                   that the compressed downloaded folder also includes a 
+                   dictionary to interpret the column names in the fishing data
+                   and keys to interpret country codes."),
+                 downloadButton(outputId = "download_data", label = "Download")
+                 ),
+               mainPanel(
+                 br(),
+                 "The fishing effort and catch data used to create plots in this
+                 tab were obtained from 'ISIMIP3a reconstructed fishing activity
+                 data (v1.0)'",
+                 tags$a(href = "https://data.isimip.org/10.48364/ISIMIP.240282", 
+                        "(Novaglio et al. 2024)."),
+                 br(),
+                 br(),
+                 "The fishing effort and catch data start in 1950, but the 
+                 fishing effort forcing was reconstructed starting in 1841, 
+                 which is available for download on the left panel.",
+                br(),
+                tabPanel("",
+                         mainPanel(
+                           br(), 
+                           withLoader(plotlyOutput(outputId = "ts_effort", 
+                                                   width = "100%", 
+                                                   height = "500px"),
+                                      type = "html", loader = "myloader")
+                           ))
+                )
+               )
+             ),
+    
     ## About tab ---------------------------------------------------------------
     tabPanel(title = "About",
              mainPanel(
@@ -449,9 +567,9 @@ ui <- fluidPage(
                h3(strong("About this website")),
                p("This tool allows regional modellers to visualise 
                  environmental data from GFDL-MOM6-COBALT2 and from 
-                 observations to determine if bias correction (Step 3 below) needs to be 
-                 applied to the data prior to its use as forcings of a regional
-                 marine ecosystem model."),
+                 observations to determine if bias correction (Step 3 below) 
+                 needs to be applied to the data prior to its use as forcings of
+                 a regional marine ecosystem model."),
                br(),
                img(src = "FishMIP_regional_model_workflow.png", height = 600,
                    width = 715, style = "display: block; 
@@ -494,7 +612,8 @@ ui <- fluidPage(
                  em("xarray"), " library to open these files. If you use R, we 
                  recommend the ", em("Rarrr"), " library. For instructions on 
                  how to load these files in R, refer to ",
-                 tags$a(href = "https://github.com/Fish-MIP/FishMIP_extracting-data/blob/main/scripts/loading_zarr_files.md", 
+                 tags$a(href = 
+                          "https://github.com/Fish-MIP/FishMIP_extracting-data/blob/main/scripts/loading_zarr_files.md", 
                         "this example.")),
                br(),
                h3(strong("How should I cite data from this site?")),
@@ -502,7 +621,7 @@ ui <- fluidPage(
                  this interactive tool using the 'Download' button included 
                  under each tab. As a condition of this tool to access data, 
                  you must cite its use. Please use the following citations:"),
-               p("- Fierro-Arcos, D., Blanchard, J. L., Flynn, C., 
+               p("- Fierro-Arcos, D., Blanchard, J. L., Clawson, G., Flynn, C., 
                  Ortega Cisneros, K., Reimer, T. (2024). FishMIP input explorer 
                  for regional ecosystem modellers. ", 
                  tags$a(href = "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/")),
@@ -527,6 +646,12 @@ ui <- fluidPage(
                  tags$a(href = 
                           "https://www.ncei.noaa.gov/products/world-ocean-atlas", 
                "product documentation"), " for the most appropriate citation."),
+               p("The fishing and catch data should be cited as follows:"),
+               p("- Camilla Novaglio, Yannick Rousseau, Reg A. Watson, Julia L.
+                 Blanchard (2024): ISIMIP3a reconstructed fishing activity data 
+                 (v1.0). ISIMIP Repository. DOI: ", 
+                 tags$a(href = "https://doi.org/10.48364/ISIMIP.240282",
+                        "10.48364/ISIMIP.240282")),
                br(),
                h3(strong("How can I contact you?")),
                p("If you are interested in our regional modelling work and would like to be 
@@ -586,6 +711,8 @@ server <- function(input, output, session) {
     unit <- var_meta$units.gfdl
     if(unit == "1"){
       unit <- "unitless"
+    }else if(unit == "0.001"){
+      unit <-  "parts per thousand"
     }
     cb_lab <- paste0(var, " (", unit, ")")
     
@@ -882,7 +1009,7 @@ server <- function(input, output, session) {
     df <- woa_data()$df_ts |>
         filter(depth == input$depth_woa)
     
-    title <- paste0("Area weighted climatological monthly mean (1981-2010) for ",
+  title <- paste0("Area weighted climatological monthly mean (1981-2010) for ",
                     lookup_woa()$long_name) |>
       str_to_sentence()
 
@@ -1070,7 +1197,7 @@ server <- function(input, output, session) {
       coord_sf(ylim = comp_maps_diff()$ylim, xlim = comp_maps_diff()$xlim, 
                expand = F) +
       guides(fill = guide_colorbar(title = lookup_comp()$cb_lab_diff,
-                                   title.position = "top", title.hjust = 0.5))+
+                                   title.position = "top", title.hjust = 0.5)) +
       labs(title = str_wrap(comp_maps_diff()$title, 65))
   },
   height = 600, width = 750)
@@ -1080,7 +1207,7 @@ server <- function(input, output, session) {
     df <- comp_data()$ts |>
       filter(depth == input$depth_comp)
     
-    title <- paste0("Area weighted climatological monthly mean (1981-2010) for ",
+  title <- paste0("Area weighted climatological monthly mean (1981-2010) for ",
                     lookup_comp()$long_name) |>
       str_to_sentence()
     
@@ -1121,6 +1248,144 @@ server <- function(input, output, session) {
       id <- showNotification("Preparing Download...", type = "message",
                              duration = NULL, closeButton = F)
       df <- comp_down_data()
+      file.copy(df, file)
+      on.exit(removeNotification(id), add = TRUE)
+    }
+  )
+  
+  
+  ## Catch and effort tab ------------------------------------------------------
+  # Update `variable_effort` choices based on dataset selection; this is because
+  # the catch dataset does not have a "Gear" column
+  # Loading relevant data based on selection
+  selected_data <- reactive({
+    if(input$catch_effort_select == "effort"){
+      data <- effort_regional_ts
+      groups <- effort_variables
+      y_axis_label <- "Nominal fishing effort\n(million kW days)"
+    }else{
+      data <- catch_regional_ts
+      groups <- catch_variables
+      y_axis_label <- "Catch (thousand tonnes)"
+    }
+    return(list(data = data,
+                groups = groups,
+                y_axis = y_axis_label))
+  })
+  
+  observeEvent(selected_data(), {
+    updateSelectInput(session, "variable_effort",
+                      choices = selected_data()$groups, 
+                      selected = selected_data()$groups[1])
+  })
+  
+  # Filtered data for plotting and downloading
+  filtered_data <- reactive({
+    req(selected_data()$data)
+    df <- selected_data()$data |>
+      filter(region == input$region_effort) 
+    if(input$variable_effort == "Functional Group"){
+      df <- df |> 
+        group_by(year, !!sym(input$variable_effort), f_group_index)
+    }else{
+      df <- df |>
+        group_by(year, !!sym(input$variable_effort))
+    }
+    df |>
+      summarise(value = ifelse(input$catch_effort_select == "effort",
+                               sum(nom_active_million, na.rm = TRUE),
+                               sum(catch_thousands, na.rm = TRUE))) |>
+      ungroup() |>
+      mutate(information = glue("<br>Year: {year}<br>{input$variable_effort}: 
+                              {get(input$variable_effort)}<br>Value: {value}"))
+  })
+  
+  output$ts_effort <- renderPlotly({
+    # Plotting data
+    df <- filtered_data()
+    
+    # Create ggplot
+    
+  if("f_group_index" %in% names(df)){
+    p <- ggplot(df, aes(x = year, y = value, 
+                        fill = fct_reorder(!!sym(input$variable_effort),
+                                           f_group_index),
+                        label = information))+
+      labs(y = selected_data()$y_axis)+
+      fishing_theme+
+      guides(fill = guide_legend(title.position = "top", 
+                                 title = "Functional Group",
+                                 title.hjust = 0.5))
+  }else{
+    p <- ggplot(df, aes(x = year, y = value, 
+                        fill = !!sym(input$variable_effort), 
+                        label = information))+
+      labs(y = selected_data()$y_axis)+
+      fishing_theme
+  }
+    
+    # Convert ggplot to an interactive plot with ggplotly
+    ggplotly(p, tooltip = 'label', height = 600, width = 800) |>
+      layout(
+        legend = list(orientation = "h", xanchor = "center", x = 0.5,
+                      yanchor = "top", y = -0.2, font = list(size = 12),
+                      traceorder = "normal", title = list(side = "top")),
+        margin = list(l = 20, r = 20, t = 10, b = 10)
+      )
+  })
+  
+  download_fishing_data <- reactive({
+    base_eff_cat <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData",
+                              "effort_catch_data")
+    regname <- str_to_lower(input$region_effort) |> 
+      str_replace_all(" ", "-") |> 
+      str_remove_all("'")
+    
+    temp_dir <- tempdir()
+    #Ensure temporary folder is empty
+    file.remove(list.files(temp_dir, full.names = T))
+    
+    #Copy SAUP file to temporary folder
+    file.copy(file.path(base_eff_cat, "SAUPtoCountry.csv"), temp_dir)
+    
+    if(input$catch_effort_select == "effort"){
+      da <- read_parquet(
+        file.path(base_eff_cat, 
+                  "effort_histsoc_1841_2017_regional_models.parquet"))
+      
+      fout <- paste0("effort_histsoc_1841_2017_", regname)
+      #Copy dictionary file to temporary folder
+      file.copy(file.path(base_eff_cat, "effort_dictionary.parquet"), temp_dir)
+    }else{
+      da <- read_parquet(
+        file.path(base_eff_cat, 
+                  "calibration_catch_histsoc_1850_2017_regional_models.parquet"))
+      #Copy dictionary file to temporary folder
+      file.copy(file.path(base_eff_cat, "catch_dictionary.parquet"), temp_dir)
+      fout <- paste0("calibration_catch_histsoc_1850_2017_", regname)
+    }
+    
+    #Extract rows for region of interest
+    da |> 
+      filter(region == input$region_effort) |> 
+      write_parquet(file.path(temp_dir, paste0(fout, ".parquet")))
+    
+    zip_out <- file.path(temp_dir, paste0(fout, ".zip"))
+    
+    zip(zip_out, list.files(temp_dir, pattern = ".parquet|.csv",
+                            full.names = T))
+   
+    return(zip_out)
+  })
+  
+  output$download_data <- downloadHandler(
+    filename = function() {
+      basename(download_fishing_data())
+    },
+    content = function(file) {
+      id <- showNotification("Preparing Download...", type = "message",
+                             duration = NULL, closeButton = F)
+      df <- download_fishing_data()
       file.copy(df, file)
       on.exit(removeNotification(id), add = TRUE)
     }
