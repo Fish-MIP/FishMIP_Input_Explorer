@@ -12,7 +12,7 @@ effort_regional_ts <-
   filter(region != "",
          Year >=1950) |>
   mutate(NomActive = as.numeric(NomActive)) |>
-  rename("Functional Group" = "FGroup") %>%
+  rename("Functional Group" = "FGroup") |>
   filter(NomActive > 0)
 
 catch_regional_ts <- fread(
@@ -20,7 +20,7 @@ catch_regional_ts <- fread(
   "ISIMIP3a/InputData/effort_catch_data/",
   "calibration_catch_histsoc_1850_2017_regional_models.csv")) |>
   mutate(catch = Reported + IUU + Discards) |>
-  rename("Functional Group" = "FGroup") %>%
+  rename("Functional Group" = "FGroup") |>
   filter(Year >= 1950, 
          catch > 0)
 
