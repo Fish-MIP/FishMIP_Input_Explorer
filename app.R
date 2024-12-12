@@ -3,7 +3,6 @@ library(arrow)
 library(shiny)
 library(shinyWidgets)
 library(shinycustomloader)
-library(readr)
 library(bslib)
 library(tibble)
 library(stringr)
@@ -20,12 +19,12 @@ options(scipen = 0)
 
 # Loading supporting files ------------------------------------------------
 # Get list of all regions available
-region_keys <- read_csv("www/FishMIP_regions_keys.csv", col_select = !id, 
-                        show_col_types = F) |> 
+region_keys <- read_csv_arrow("www/FishMIP_regions_keys.csv",
+                              col_select = !id) |> 
   deframe()
 
 # Getting names of environmental variables available with equivalent from WOA
-var_metadata <- read_csv("www/woa_gfdl_var_keys.csv", show_col_types = F) 
+var_metadata <- read_csv_arrow("www/woa_gfdl_var_keys.csv") 
 
 # GFDL variables - named vector
 gfdl_variables <- var_metadata |> 
