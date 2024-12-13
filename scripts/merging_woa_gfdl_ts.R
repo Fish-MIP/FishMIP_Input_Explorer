@@ -6,14 +6,13 @@
 
 ## Loading libraries ----
 library(arrow)
-library(readr)
 library(dplyr)
 library(purrr)
 library(tidyr)
 
 # Define basic variables --------------------------------------------------
 # Regions
-regions <- read_csv("www/FishMIP_regions_keys.csv")
+regions <- read_csv_arrow("www/FishMIP_regions_keys.csv")
 
 # Folders where WOA and GFDL time series data are stores
 woa_base <- "/rd/gem/public/fishmip/WOA_data/regional/monthly/comp_clim/"
