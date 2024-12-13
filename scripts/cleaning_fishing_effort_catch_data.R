@@ -4,7 +4,7 @@
 
 
 # Loading libraries -------------------------------------------------------
-library(readr)
+library(arrow)
 library(dplyr)
 library(janitor)
 library(tidyr)
@@ -13,10 +13,10 @@ library(stringr)
 # Loading effort data -----------------------------------------------------
 effort_data <- file.path("/rd/gem/public/fishmip/ISIMIP3a/InputData", 
                          "effort_catch_data",
-                         "effort_histsoc_1841_2017_regional_models.csv") |> 
-  read_csv() |> 
+                         "effort_histsoc_1841_2017_regional_models.parquet") |> 
+  read_parquet() |> 
   #Keep data up from 1950 onwards
-  filter(Year >= 1950)
+  filter(year >= 1950)
 
 
 # Cleaning effort data ----------------------------------------------------
@@ -82,10 +82,10 @@ effort_data |>
 # Loading catch data ------------------------------------------------------
 catch_data <- file.path(
   "/rd/gem/public/fishmip/ISIMIP3a/InputData/effort_catch_data",
-  "calibration_catch_histsoc_1850_2017_regional_models.csv") |> 
-  read_csv() |> 
+  "calibration_catch_histsoc_1850_2017_regional_models.parquet") |> 
+  read_parquet() |> 
   #Keep data up from 1950 onwards
-  filter(Year >= 1950)
+  filter(year >= 1950)
 
 # Cleaning catch data -----------------------------------------------------
 catch_data <- catch_data |> 
