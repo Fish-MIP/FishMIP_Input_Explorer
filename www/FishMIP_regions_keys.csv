@@ -1,41 +1,42 @@
-id,region,lookup
-1,Baltic Sea EwE,baltic-sea-ewe
-2,Baltic Sea Mizer,baltic-sea-mizer
-3,Brazil NE,brazil-ne
-4,Central North Pacific,central-north-pacific
-5,Central South Pacific,central-south-pacific
-6,Chatham Rise,chatham-rise
-7,Cook Strait,cook-strait
-8,East Antarctica Atlantis,east-antarctica-atlantis
-9,East Antarctica EwE,east-antarctica-ewe
-10,East Bass Strait,east-bass-strait
-11,East Bering Sea EcoState,east-bering-sea-ecostate
-12,East Bering Sea Mizer,east-bering-sea-mizer
-13,East Bering Sea Rpath,east-bering-sea-rpath
-14,East Scotian Shelf,east-scotian-shelf
-15,Grand Banks Newfoundland,grand-banks-newfoundland
-16,Gulf Alaska,gulf-alaska
-17,Gulf of Guinea,gulf-of-guinea
-18,Hawai'i based Longline,hawaii-based-longline
-19,Kerguelen EwE,kerguelen-ewe
-20,Kerguelen Mizer,kerguelen-mizer
-21,Main Hawaiian Islands,main-hawaiian-islands
-22,Mediterranean Sea EwE,mediterranean-sea-ewe
-23,Mediterranean Sea OSMOSE,mediterranean-sea-osmose
-24,Newfoundland and Labrador Shelf,newfoundland-and-labrador-shelf
-25,Nordic and Barents Seas,nordic-and-barents-seas
-26,North Humboldt,north-humboldt
-27,North Sea EwE Mizer,north-sea-ewe-mizer
-28,North Sea OSMOSE,north-sea-osmose
-29,Northern California Current,northern-california-current
-30,Northern Gulf of Alaska,northern-gulf-of-alaska
-31,NorthWestern Mediterranean Sea,northwestern-mediterranean-sea
-32,Prydz Bay,prydz-bay
-33,Puget Sound Atlantis,puget-sound-atlantis
-34,Ross Sea MBTM,ross-sea-mbtm
-35,SE Australia Atlantis,se-australia-atlantis
-36,SE Australia Mizer,se-australia-mizer
-37,Southern Benguela,southern-benguela
-38,Southern Ocean,southern-ocean
-39,Tasman and Golden Bays,tasman-and-golden-bays
-40,Western Mediterranean Sea,western-mediterranean-sea
+"id","region","lookup"
+1,"Baltic Sea EwE","baltic-sea-ewe"
+2,"Baltic Sea Mizer","baltic-sea-mizer"
+3,"Brazil NE","brazil-ne"
+4,"Central North Pacific","central-north-pacific"
+5,"Central South Pacific","central-south-pacific"
+6,"Chatham Rise","chatham-rise"
+7,"Cook Strait","cook-strait"
+8,"East Antarctica Atlantis","east-antarctica-atlantis"
+9,"East Antarctica EwE","east-antarctica-ewe"
+10,"East Bass Strait","east-bass-strait"
+11,"East Bering Sea EcoState","east-bering-sea-ecostate"
+12,"East Bering Sea Mizer","east-bering-sea-mizer"
+13,"East Bering Sea Rpath","east-bering-sea-rpath"
+14,"East Scotian Shelf","east-scotian-shelf"
+15,"Eastern English Channel OSMOSE","eastern-english-channel-osmose"
+16,"Grand Banks Newfoundland","grand-banks-newfoundland"
+17,"Gulf Alaska","gulf-alaska"
+18,"Gulf of Guinea","gulf-of-guinea"
+19,"Hawai'i based Longline","hawaii-based-longline"
+20,"Kerguelen EwE","kerguelen-ewe"
+21,"Kerguelen Mizer","kerguelen-mizer"
+22,"Main Hawaiian Islands","main-hawaiian-islands"
+23,"Mediterranean Sea EwE","mediterranean-sea-ewe"
+24,"Mediterranean Sea OSMOSE","mediterranean-sea-osmose"
+25,"Newfoundland and Labrador Shelf","newfoundland-and-labrador-shelf"
+26,"Nordic and Barents Seas","nordic-and-barents-seas"
+27,"North Humboldt","north-humboldt"
+28,"North Sea EwE Mizer","north-sea-ewe-mizer"
+29,"North Sea OSMOSE","north-sea-osmose"
+30,"Northern California Current","northern-california-current"
+31,"Northern Gulf of Alaska","northern-gulf-of-alaska"
+32,"NorthWestern Mediterranean Sea","northwestern-mediterranean-sea"
+33,"Prydz Bay","prydz-bay"
+34,"Puget Sound Atlantis","puget-sound-atlantis"
+35,"Ross Sea MBTM","ross-sea-mbtm"
+36,"SE Australia Atlantis","se-australia-atlantis"
+37,"SE Australia Mizer","se-australia-mizer"
+38,"Southern Benguela","southern-benguela"
+39,"Southern Ocean","southern-ocean"
+40,"Tasman and Golden Bays","tasman-and-golden-bays"
+41,"Western Mediterranean Sea","western-mediterranean-sea"
