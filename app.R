@@ -276,14 +276,18 @@ ui <- fluidPage(
                  area-weighted monthly mean between 1961 and 2010.",  
                  br(), br(),
                  strong("Note: "), "The variable names and units shown in the
-                 dropdown list and plots come from the GFDL-MOM6-COBALT2 model. 
-                 We have chosen not apply any transformation to the original 
-                 model outputs. Instead, we summarised data so we could create 
-                 the map and time series plots within the limits of all FishMIP 
-                 regional models. If your model requires environmental data to 
-                 be in a unit or grid that is different to the one available in 
-                 the GFDL-MOM6-COBALT2 model, you can download the data from 
-                 this website and post-process it to meet your needs.",
+                 dropdown list and plots come from the ",
+                 tags$a(href = paste0("https://protocol.isimip.org/#/ISIMIP3a/",
+                                      "marine-fishery_global/32-climate-", 
+                                      "related-forcing"),
+                        "GFDL-MOM6-COBALT2 model."), "We have chosen not apply 
+                 any transformation to the original model outputs. Instead, we 
+                 summarised data so we could create the map and time series 
+                 plots within the limits of all FishMIP regional models. If 
+                 your model requires environmental data to be in a unit or grid 
+                 that is different to the one available in the GFDL-MOM6-COBALT2
+                 model, you can download the data from this website and 
+                 post-process it to meet your needs.",
                  br(), br(),
                  tabsetPanel(
                    tabPanel("Climatological map",
@@ -611,8 +615,9 @@ ui <- fluidPage(
                  em("xarray"), " library to open these files. If you use R, we 
                  recommend the ", em("Rarrr"), " library. For instructions on 
                  how to load these files in R, refer to ",
-                 tags$a(href = 
-                          "https://github.com/Fish-MIP/FishMIP_extracting-data/blob/main/scripts/loading_zarr_files.md", 
+                 tags$a(href = paste0("https://github.com/Fish-MIP/",
+                                      "FishMIP_extracting-data/blob/main/", 
+                                      "scripts/loading_zarr_files.md"), 
                         "this example.")),
                br(),
                h3(strong("How should I cite data from this site?")),
@@ -623,7 +628,9 @@ ui <- fluidPage(
                p("- Fierro-Arcos, D., Blanchard, J. L., Clawson, G., Flynn, C., 
                  Ortega Cisneros, K., Reimer, T. (2024). FishMIP input explorer 
                  for regional ecosystem modellers. ", 
-                 tags$a(href = "https://rstudio.global-ecosystem-model.cloud.edu.au/shiny/FishMIP_Input_Explorer/")),
+                 tags$a(href = paste0("https://rstudio.global-ecosystem-model.", 
+                                      "cloud.edu.au/shiny/",
+                                      "FishMIP_Input_Explorer/"))),
                p("When using the data products in a publication, please include 
                the following citation in addition to the data product citation 
                provided above:"),
@@ -631,7 +638,8 @@ ui <- fluidPage(
                  (Preprint). An Integrated Global-to-Regional Scale Workflow for
                  Simulating Climate Change Impacts on Marine Ecosystems. ESS 
                  Open Archive. DOI:", 
-                 tags$a(href ="http://dx.doi.org/10.22541/essoar.171587234.44707846/v1",
+                 tags$a(href =paste0("http://dx.doi.org/10.22541/", 
+                                     "essoar.171587234.44707846/v1"),
                  "10.22541/essoar.171587234.44707846/v1")),
                p("When using GFDL-MOM6-COBALT2 model outputs, you 
                  also need to include the following citation:"),
@@ -881,8 +889,8 @@ server <- function(input, output, session) {
       id <- showNotification("Preparing Download...", type = "message",
                              duration = NULL, closeButton = F)
       df <- gfdl_down_data()
-      if(str_detect(file, "csv$")){
-        write_csv(df, file)
+      if(str_detect(file, ".csv$")){
+        write_csv_arrow(df, file)
       }else{
         file.copy(df, file)
       }
@@ -1082,7 +1090,7 @@ server <- function(input, output, session) {
       id <- showNotification("Preparing Download...", type = "message", 
                              duration = NULL, closeButton = F)
       on.exit(removeNotification(id), add = TRUE)
-      write_csv(df, file)
+      write_csv_arrow(df, file)
     }
   )
 
@@ -1296,7 +1304,7 @@ server <- function(input, output, session) {
                                sum(catch_thousands, na.rm = TRUE))) |>
       ungroup() |>
       mutate(information = glue("<br>Year: {year}<br>{input$variable_effort}: 
-                              {get(input$variable_effort)}<br>Value: {value}"))
+                                {get(input$variable_effort)}<br>Value: {value}"))
   })
   
   output$ts_effort <- renderPlotly({
@@ -1349,16 +1357,14 @@ server <- function(input, output, session) {
     
     if(input$catch_effort_select == "effort"){
       da <- read_parquet(
-        file.path(base_eff_cat, 
-                  "effort_histsoc_1841_2017_regional_models.parquet"))
+        file.path(base_eff_cat, "effort_1841_2017_regional_download.parquet"))
       
       fout <- paste0("effort_histsoc_1841_2017_", regname)
       #Copy dictionary file to temporary folder
       file.copy(file.path(base_eff_cat, "effort_dictionary.parquet"), temp_dir)
     }else{
       da <- read_parquet(
-        file.path(base_eff_cat, 
-                  "calibration_catch_histsoc_1850_2017_regional_models.parquet"))
+        file.path(base_eff_cat, "catch_1850_2017_regional_download.parquet"))
       #Copy dictionary file to temporary folder
       file.copy(file.path(base_eff_cat, "catch_dictionary.parquet"), temp_dir)
       fout <- paste0("calibration_catch_histsoc_1850_2017_", regname)
