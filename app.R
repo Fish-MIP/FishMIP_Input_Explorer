@@ -725,7 +725,8 @@ server <- function(input, output, session) {
     
     
     #Create keywords to search files
-    search_file <- paste0("_", input$variable_gfdl, "_.*_", input$region_gfdl)
+    search_file <- paste0("_", input$variable_gfdl, "_.*_", 
+                          input$region_gfdl, "_")
     
     #Return items
     return(list(search_file = search_file,
