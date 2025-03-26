@@ -45,13 +45,13 @@ merge_ts <- function(woa_base, gfdl_base, region, var_woa, var_gfdl,
   # stored
   
   #Loading data
-  woa <- list.files(woa_base, paste0("_", region, ".*", var_woa),
+  woa <- list.files(woa_base, paste0("_", region, "_.*", var_woa),
                     full.names = T) |>
     read_parquet(col_select = month:weighted_sd) |>
     #Ensuring months appear correctly in data
     mutate(month = factor(month, levels = month.name, ordered = T))
   
-  gfdl <- list.files(gfdl_base, paste0("_", var_gfdl, "_.*_", region),
+  gfdl <- list.files(gfdl_base, paste0("_", var_gfdl, "_.*_", region, "_"),
                      full.names = T) |>
     read_parquet(col_select = month:vals) |>
     #Ensuring months appear correctly in data
