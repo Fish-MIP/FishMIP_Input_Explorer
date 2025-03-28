@@ -635,12 +635,11 @@ ui <- fluidPage(
                the following citation in addition to the data product citation 
                provided above:"),
                p("- Ortega-Cisneros, K., Fierro-Arcos, D. Lindmark, M., et al.
-                 (Preprint). An Integrated Global-to-Regional Scale Workflow for
-                 Simulating Climate Change Impacts on Marine Ecosystems. ESS 
-                 Open Archive. DOI:", 
-                 tags$a(href =paste0("http://dx.doi.org/10.22541/", 
-                                     "essoar.171587234.44707846/v1"),
-                 "10.22541/essoar.171587234.44707846/v1")),
+                 (2025). An Integrated Global-to-Regional Scale Workflow for
+                 Simulating Climate Change Impacts on Marine Ecosystems.", 
+                 em("Earth's Future,"), " 13, e2024EF004826. DOI:", 
+                 tags$a(href = "https://doi.org/10.1029/2024EF004826",
+                 "https://doi.org/10.1029/2024EF004826")),
                p("When using GFDL-MOM6-COBALT2 model outputs, you 
                  also need to include the following citation:"),
                p("- Xiao Liu, Charles Stock, John Dunne, Minjin Lee, Elena 
