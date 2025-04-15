@@ -251,7 +251,11 @@ ui <- fluidPage(
                  " tab to see a time series of the area-weighted monthly
                      mean and the linear temporal trend."),
                  p(em("Optional: "), "Get a copy of the data used to create 
-                   these plots by clicking the 'Download' button below."),
+                   these plots by clicking the 'Download' button below. Note 
+                   that variables that are three dimensional (i.e., have 
+                   multiple depth levels) will be downloaded as ", em(".zarr"), 
+                   " files. Refer to the ", strong('About'), " tab for details 
+                   on how to open this file format in R."),
                  # Download option
                  downloadButton(outputId = "download_gfdl", 
                                 label = "Download")
@@ -368,9 +372,11 @@ ui <- fluidPage(
                  summarised data so we could create maps and time series plots
                  within the limits of all FishMIP regional models. If your model
                  requires environmental data to be in a unit or grid that is 
-                 different to the one available in the WOA23a you can download 
-                 the data from this website and post-process it to meet your 
-                 needs.",
+                 different to the one available in the WOA23 you can download 
+                 the data from ", 
+                 tags$a(href=paste0("https://www.ncei.noaa.gov/products/",
+                                    "world-ocean-atlas"), "this website"), 
+                 "and post-process it to meet your needs.",
                  br(), br(),
                  "For some regions, the WOA23 dataset may have a very limited 
                  number of observations and so it may not offer the most 
@@ -459,9 +465,14 @@ ui <- fluidPage(
                  observations."),
                  
                  #Optional download
-                 p(em("Optional: "), "Get a copy of the data for bias correction 
-                 (if needed) as a compressed folder by clicking the 'Download' 
-                   button below."),
+                 p(em("Optional: "), "Get a copy of the data for bias correction
+                   (if needed) as a compressed folder (", em(".zip"), ") by 
+                   clicking the 'Download' button below. Note that the ", 
+                   em(".zip"), "folder has files in ", em(".parquet"), " format,
+                   which is designed to store and retrieve tabular data in an
+                   efficient way. Refer to the ", strong('About'), " tab for 
+                   details on how to open this file format in R."),
+                 
                  # Download option
                  downloadButton(outputId = "download_comp", 
                                 label = "Download")
@@ -532,10 +543,16 @@ ui <- fluidPage(
                  
                  # Inline layout for download button
                  p(em("Optional: "), "Get a copy of the data used to create 
-                   these plots by clicking the 'Download' button below. Note 
-                   that the compressed downloaded folder also includes a 
-                   dictionary to interpret the column names in the fishing data
-                   and keys to interpret country codes."),
+                   these plots as a compressed folder (", em(".zip"), ") by 
+                   clicking the 'Download' button below. The downloaded folder
+                   also includes two dictionaries: one will help you interpret 
+                   the column names in the fishing data and the other will allow
+                   upi to interpret country codes. Note that the ", em(".zip"), 
+                   "folder has files in ", em(".parquet"), " format, which is 
+                   designed to store and retrieve tabular data in an efficient 
+                   way. Refer to the ", strong('About'), " tab for details on 
+                   how to open this file format in R."),
+                 
                  downloadButton(outputId = "download_data", label = "Download")
                  ),
                mainPanel(
@@ -596,29 +613,62 @@ ui <- fluidPage(
                br(),
                h3(strong("How should I use this tool?")),
                p("This site has three main tabs:"),
-               p("1.", em(strong("GFDL model outputs"))),
-               p("2.", em(strong("World Ocean Atlas 2023 data"))),
-               p("3.", em(strong("Model outputs against observations"))),
-               p("You can download data that has been subsetted for the 
-                 regional model of your interest in the first two tabs. Note 
-                 that all WOA 2023 data are available for download as ",
-                 em("csv"), " files. GFDL outputs that do not have a depth 
-                 component (i.e., surface or bottom data) are also available as
-                 ", em("csv"), " files."),
-               p("However, due to the size of GFDL outputs with a depth 
-                 component (e.g. temperature of the water column), these data 
-                 are only available for download as ", em("zip"), " (i.e., 
-                 compressed) folders containing ", em("Zarr"), " files
-                 to speed up download times. A ", em("Zarr"), " file is a cloud
-                 optimised gridded data file format similar to ", em("netcdf"),
-                 " files. If you use Python, we recommend you use the ", 
-                 em("xarray"), " library to open these files. If you use R, we 
-                 recommend the ", em("Rarrr"), " library. For instructions on 
-                 how to load these files in R, refer to ",
+               p("1.", em(strong("GFDL model outputs:")), " Here you can 
+                 download the GFDL-MOM6-COBALT2 ocean outputs as originally 
+                 available in the ", tags$a(href="https://data.isimip.org/", 
+                                            "ISIMIP data repository."), 
+                 "Data available for download in this tab has not been 
+                 processed in any way, we have simply extracted all available
+                 data within the boundaries of your region of interest."),
+               p("2.", em(strong("World Ocean Atlas 2023 data:")), " In this 
+                 tab you can download World Ocean Atlas 2023 (WOA23) data that 
+                 has been extracted for your region of interest. Note that data
+                 available for downloaded here has not been processed in any 
+                 way and it is excatly as available in the original form. For
+                 more information refer to their ", 
+                 tags$a(href=paste0("https://www.ncei.noaa.gov/products/",
+                                    "world-ocean-atlas"), "documentation.")),
+               p("3.", em(strong("Model outputs against observations: ")), "In 
+                 this tab you can download GFDL-MOM6-COBALT2 and WOA23 data for
+                 your region of interest. The WOA23 data available for download 
+                 in this tab has been regridded to match GFDL-MOM6-COBALT2 to
+                 allow users to compare these products with ease."),
+               p("4:", em(strong("Fishing effort and catch data: ")), " Here 
+                 you can download the fishing effort and catch data that should 
+                 be used to force your regional marine ecosystem models 
+                 following ",
+                 tags$a(href="https://github.com/Fish-MIP/FishMIP2.0_ISIMIP3a",
+                        "FishMIP protocol 3a.")),
+               h4(strong("What are .zarr and .parquet files?")),
+               p("Although these two file formats store different types of data:
+                 zarr is designed for gridded data, while parquet files store 
+                 tabular data. Both of them are cloud optimised file formats 
+                 that are designed to make data storage and retrieval more 
+                 efficient. This means that filesizes are smaller and you can 
+                 load them faster than other files formats storing the same 
+                 type of data (e.g., .csv, .txt, .nc)."),
+               p("Using these file formats also have the benefit of decreasing 
+                 the time you need to wait for data to be downloaded from this
+                 website. This is especially true for regional models that cover
+                 a large geographical area."),
+               p("To load parquet files into R we recommend you install the ",
+                 tags$a(href="https://arrow.apache.org/docs/r/", "arrow"),
+                 " package. Then use the ", em("read_parquet()")," function to
+                 load the parquet file as a tibble. From here, you can use ",
+                 em("tidyverse"), " or base R to process the data as you would
+                 with any tabular dataset. If you are a Linux user, you may 
+                 also want to consider the ", 
+                 tags$a(href="https://nanoparquet.r-lib.org/", "nanoparquet"),
+                 "package."),
+               p("To load zarr files in R, we recommend you use the ", 
+                 tags$a(href=paste0("https://www.bioconductor.org/packages/",
+                                    "release/bioc/html/Rarr.html"), "Rarr"), 
+                 " package. For instructions on how to load these files in R, 
+                 we created an ",
                  tags$a(href = paste0("https://github.com/Fish-MIP/",
                                       "FishMIP_extracting-data/blob/main/", 
                                       "scripts/loading_zarr_files.md"), 
-                        "this example.")),
+                        "example notebook.")),
                br(),
                h3(strong("How should I cite data from this site?")),
                p("You can download the data used to create the plots shown in 
