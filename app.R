@@ -606,8 +606,8 @@ ui <- fluidPage(
                You can find more information about FishMIP on our ",
                tags$a(href="https://fishmip.org/", "website.")),
                br(),
-               img(src = "FishMIP_regional_models.png", height = 590,
-                   width = 775, style = "display: block; 
+               img(src = "FishMIP_regional_models.png", height = 750,
+                   width = 800, style = "display: block; 
                                           margin-left: auto;
                                           margin-right: auto"),
                br(),
