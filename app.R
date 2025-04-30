@@ -721,15 +721,18 @@ ui <- fluidPage(
                br(),
                h4(strong("Acknowledgments")),
                p("The development of this tool was funded by the Australian 
-               Government through the Australian Research Council (ARC) 
-                 Future Fellowship Project FT210100798. We gratefully 
-                 acknowledge contributions 
-                 from coordinators and contributing modellers of the FishMIP 
-                 and ISIMIP communities. We would also like to acknowledge 
-                 OceanHackWeek participants for contributing to the development 
-                 of this tool. Finally, we would also like to acknowledge the 
-                 use of computing facilities provided by Digital Research 
-                 Services, IT Services at the University of Tasmania."),
+                 Government through the Australian Research Council (ARC) 
+                 Future Fellowship Project FT210100798. This tool is supported
+                 by the use of the ARDC Nectar Research Cloud, a collaborative 
+                 Australian research platform supported by the NCRIS-funded 
+                 Australian Research Data Commons (ARDC). We gratefully 
+                 acknowledge contributions from coordinators and contributing
+                 modellers of the FishMIP and ISIMIP communities. We would also
+                 like to acknowledge OceanHackWeek participants for contributing
+                 to the development of this tool. Finally, we would also like 
+                 to acknowledge the use of computing facilities provided by 
+                 Digital Research Services, IT Services at the University of 
+                 Tasmania."),
                br(),
                br(),
                fluidRow(
@@ -742,7 +745,7 @@ ui <- fluidPage(
                                style = "display: block; margin-left: auto; 
                                margin-right: auto")),
                  column(4, img(src = "UN_OceanDecadeLogo_cropped.png", 
-                               height = 150, width = 300,
+                               height = 145, width = 280,
                                style = "display: block; margin-left: auto; 
                                margin-right: auto"))),
                br()
