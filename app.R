@@ -1162,24 +1162,18 @@ server <- function(input, output, session) {
       unit <- "unitless"
     }
     cb_lab_diff <- paste0("Difference in ", var, " (", unit, ")")
-    cb_lab_per <- paste0("Percentage difference in ", var)
     
     #Create keywords to search files
-    diff_file <- paste0("^diff.*", input$region_compare, "_", 
+    diff_file <- paste0("^diff.*_", input$region_compare, "_", 
                         input$variable_compare)
-    
-    per_file <- paste0("^per.*", input$region_compare, "_", 
-                       input$variable_compare)
     
     ts_file <- paste0(input$variable_compare, "_", input$region_compare)
     
     #Return items
     return(list(diff_file = diff_file,
-                per_file = per_file,
                 ts_file = ts_file,
                 long_name = var,
-                cb_lab_diff = cb_lab_diff,
-                cb_lab_per = cb_lab_per))
+                cb_lab_diff = cb_lab_diff))
   })
   
   comp_data <- reactive({
@@ -1188,10 +1182,6 @@ server <- function(input, output, session) {
                            full.names = T) |>
       read_parquet()
     #Loading time series dataset
-    per_map <- list.files(map_comp_files, pattern = lookup_comp()$per_file,
-                          full.names = T) |>
-      read_parquet()
-    
     ts <- list.files(ts_comp_files, pattern = lookup_comp()$ts_file,
                      full.names = T) |>
       read_parquet()
@@ -1204,7 +1194,6 @@ server <- function(input, output, session) {
     depths <- unique(diff_map$depth)
     
     return(list(diff_map = diff_map,
-                per_map = per_map,
                 ts = ts,
                 depths = depths,
                 shp_map = shp_map))
