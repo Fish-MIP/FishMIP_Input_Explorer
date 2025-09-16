@@ -110,19 +110,17 @@ catch_data <- catch_data |>
 rm(all_combs)
 
 #Fixing functional group labels
-# catch_data <- catch_data |> 
-#   mutate(f_group = str_replace(f_group, "([a-z])(\\d|>|<)", "\\1 \\2")) |> 
-#   mutate(f_group = case_when(f_group == "demersalmollusc" ~ 
-#                                "demersal mollusc",
-#                              f_group == "lobsterscrab" ~ "lobsters crab",
-#                              T ~ f_group))
+catch_data <- catch_data |>
+  mutate(f_group = str_replace(f_group, "([a-z])(\\d|>|<)", "\\1 \\2")) |>
+  mutate(f_group = case_when(f_group == "demersalmollusc" ~
+                               "demersal mollusc",
+                             f_group == "lobsterscrab" ~ "lobsters crab",
+                             T ~ f_group))
 
 #Adding group index to dataset
 catch_data <- catch_data |> 
   select(!tot_catch) |> 
-  rename(f_group_index = f_group) |> 
-  left_join(func_groups) |> 
-  mutate(f_group = ifelse(is.na(f_group), "other", f_group))
+  left_join(func_groups)
 
 # Saving clean catch data -------------------------------------------------
 catch_data |> 
