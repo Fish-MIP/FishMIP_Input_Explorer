@@ -1345,33 +1345,32 @@ server <- function(input, output, session) {
                                sum(nom_active_million, na.rm = TRUE),
                                sum(catch_thousands, na.rm = TRUE))) |>
       ungroup() |>
-      mutate(information = glue("<br>Year: {year}<br>{input$variable_effort}: 
-                                {get(input$variable_effort)}<br>Value: {value}"))
+      mutate(information = 
+               glue("<br>Year: {year}<br>{input$variable_effort}: 
+                    {get(input$variable_effort)}<br>Value: {value}"))
   })
   
   output$ts_effort <- renderPlotly({
     # Plotting data
     df <- filtered_data()
-    
     # Create ggplot
-    
-  if("f_group_index" %in% names(df)){
-    p <- ggplot(df, aes(x = year, y = value, 
-                        fill = fct_reorder(!!sym(input$variable_effort),
-                                           f_group_index),
-                        label = information))+
-      labs(y = selected_data()$y_axis)+
-      fishing_theme+
-      guides(fill = guide_legend(title.position = "top", 
-                                 title = "Functional Group",
-                                 title.hjust = 0.5))
-  }else{
-    p <- ggplot(df, aes(x = year, y = value, 
-                        fill = !!sym(input$variable_effort), 
-                        label = information))+
-      labs(y = selected_data()$y_axis)+
-      fishing_theme
-  }
+    if("f_group_index" %in% names(df)){
+      p <- ggplot(df, aes(x = year, y = value, 
+                          fill = fct_reorder(!!sym(input$variable_effort),
+                                             f_group_index),
+                          label = information))+
+        labs(y = selected_data()$y_axis)+
+        fishing_theme+
+        guides(fill = guide_legend(title.position = "top", 
+                                   title = "Functional Group",
+                                   title.hjust = 0.5))
+      }else{
+        p <- ggplot(df, aes(x = year, y = value, 
+                            fill = !!sym(input$variable_effort), 
+                            label = information))+
+          labs(y = selected_data()$y_axis)+
+          fishing_theme
+      }
     
     # Convert ggplot to an interactive plot with ggplotly
     ggplotly(p, tooltip = 'label', height = 600, width = 800) |>
