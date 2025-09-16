@@ -27,7 +27,7 @@ zmeso,mole_concentration_of_mesoplankton_expressed_as_carbon_in_sea_water,Mesozo
 expc-bot,sinking_mole_flux_of_particulate_organic_matter_expressed_as_carbon_in_sea_water,Sinking Particulate Organic Carbon Flux on Bottom (z_b),mol m-2 s-1,NA,NA,NA,NA,NA
 intppdiat,net_primary_mole_productivity_of_biomass_expressed_as_carbon_by_diatoms,Net Primary Organic Carbon Production by Diatoms,mol m-2 s-1,NA,NA,NA,NA,NA
 phyc-vint,mole_content_of_phytoplankton_expressed_as_carbon_in_sea_water,Phytoplankton Carbon Content,mol m-2,NA,NA,NA,NA,NA
-phydiaz-vint,mole_content_of_diazotrophs_expressed_as_carbon_in_sea_water,Mole Content of Diazotrophs expressed as Carbon in sea water,mol m-2,NA,NA,NA,NA,NA
+phydiaz-vint,mole_content_of_diazotrophs_expressed_as_carbon_in_sea_water,Mole Content of Diazotrophs expressed as Carbon in sea water (vertically integrated),mol m-2,NA,NA,NA,NA,NA
 intpoc,particulate_organic_carbon_content,Particulate Organic Carbon Content,kg m-2,NA,NA,NA,NA,NA
 o2-bot,mole_concentration_of_dissolved_molecular_oxygen_in_sea_water,Dissolved Oxygen Concentration on Bottom (z_b),mol m-3,NA,NA,NA,NA,NA
 uo,sea_water_x_velocity,Sea Water X Velocity,m s-1,NA,NA,NA,NA,NA
