@@ -571,10 +571,12 @@ ui <- fluidPage(
                 tabPanel("",
                          mainPanel(
                            br(), 
-                           withLoader(plotlyOutput(outputId = "ts_effort", 
+                           withLoader(plotOutput("ts_effort",
+                           # withLoader(plotlyOutput("ts_effort",
                                                    width = "100%", 
                                                    height = "500px"),
                                       type = "html", loader = "myloader")
+                           # withLoader(tableOutput("test"))
                            ))
                 )
                )
@@ -1340,7 +1342,7 @@ server <- function(input, output, session) {
       df <- df |>
         group_by(year, !!sym(input$variable_effort))
     }
-    df |>
+    df <- df |>
       summarise(value = ifelse(input$catch_effort_select == "effort",
                                sum(nom_active_million, na.rm = TRUE),
                                sum(catch_thousands, na.rm = TRUE))) |>
@@ -1350,36 +1352,41 @@ server <- function(input, output, session) {
                     {get(input$variable_effort)}<br>Value: {value}"))
   })
   
-  output$ts_effort <- renderPlotly({
+  # output$test <- renderTable(head(filtered_data(), n = 10))
+  
+  # output$ts_effort <- renderPlotly({
+  output$ts_effort <- renderPlot({
     # Plotting data
     df <- filtered_data()
     # Create ggplot
     if("f_group_index" %in% names(df)){
-      p <- ggplot(df, aes(x = year, y = value, 
+      p <- ggplot(df, aes(x = year, y = value,
                           fill = fct_reorder(!!sym(input$variable_effort),
                                              f_group_index),
                           label = information))+
         labs(y = selected_data()$y_axis)+
         fishing_theme+
-        guides(fill = guide_legend(title.position = "top", 
+        guides(fill = guide_legend(title.position = "top",
                                    title = "Functional Group",
                                    title.hjust = 0.5))
       }else{
-        p <- ggplot(df, aes(x = year, y = value, 
-                            fill = !!sym(input$variable_effort), 
+        p <- ggplot(df, aes(x = year, y = value,
+                            fill = !!sym(input$variable_effort),
                             label = information))+
           labs(y = selected_data()$y_axis)+
           fishing_theme
       }
     
     # Convert ggplot to an interactive plot with ggplotly
-    ggplotly(p, tooltip = 'label', height = 600, width = 800) |>
-      layout(
-        legend = list(orientation = "h", xanchor = "center", x = 0.5,
-                      yanchor = "top", y = -0.2, font = list(size = 12),
-                      traceorder = "normal", title = list(side = "top")),
-        margin = list(l = 20, r = 20, t = 10, b = 10)
-      )
+    # ggplotly(p, tooltip = "label", height = 600, width = 800) |>
+      # layout(
+      #   legend = list(orientation = "h", xanchor = "center", x = 0.5,
+      #                 yanchor = "top", y = -0.2, font = list(size = 12),
+      #                 traceorder = "normal", title = list(side = "top")),
+      #   margin = list(l = 20, r = 20, t = 10, b = 10)
+      # )
+    # suppressWarnings({ggplotly(p)})
+    p
   })
   
   download_fishing_data <- reactive({
