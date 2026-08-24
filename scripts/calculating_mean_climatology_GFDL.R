@@ -43,9 +43,9 @@ par_list <- list.files(file.path(base_dir, "download_data"),
   str_subset("areacello|deptho", negate = T)
 
 #Loading area file
-area_df <- file.path("/g/data/vf71/shared_resources/grid_cell_area_ESMs/isimip3a",
-                     "gfdl-mom6-cobalt2_areacello_15arcmin_global_fixed.csv") |> 
-  read_csv() |> 
+area_df <- read_csv(
+  file.path("/g/data/vf71/shared_resources/grid_cell_vars_ESMs/isimip3a",
+            "gfdl-mom6-cobalt2_areacello_15arcmin_global_fixed.csv")) |> 
   rename(lon = x, lat = y) 
 
 
